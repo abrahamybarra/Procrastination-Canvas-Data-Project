@@ -1,0 +1,79 @@
+---
+title: "01_Deidentify_and_Clean"
+author: "Abraham Ybarra"
+date: '2023-02-03'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load libraries
+
+```{r}
+library(tidyverse)
+library(here)
+```
+
+## Read in data
+
+```{r}
+######## Read in F21 (Ashley) Data ############
+studentSummary <- read.csv(paste0(here(),"/raw_data/F21/studentSummary.csv"), header = TRUE)
+late <- read.csv(paste0(here(),"/raw_data/F21/lateAssignments.csv"), header = TRUE)
+missing <- read.csv(paste0(here(),"/raw_data/F21/missingAssignments.csv"), header = TRUE)
+grades <- read.csv(paste0(here(),"/raw_data/F21/gradebook.csv"), header = TRUE)
+```
+
+## Deidentify data
+
+```{r}
+######## Rename column to be joined (SIS id) to match in all datasets ############
+studentSummary <- studentSummary %>%
+  rename(Student.Name = Sortable.name) %>%
+  select(Student.Name, SIS.Id, Overall.course.grade, Assignment.on.time.percent, Page.Views, Participations) %>%
+  relocate(SIS.Id, .after = Student.Name)
+
+grades <- grades %>%
+  rename(Student.Name = Student)
+
+######## Join to late assignments and remove identifying info ############
+late <- late %>%
+  inner_join(studentSummary, by = "Student.Name") %>%
+  select(SIS.Id, Assignment.Name, Points.Possible, Due.Date, Unlocked.Date, Submitted.Date,
+         Overall.course.grade, Assignment.on.time.percent, Page.Views, Participations)
+  
+######## Join to missing assignments and remove identifying info ############
+missing <- missing %>%
+  inner_join(studentSummary, by = "Student.Name") %>%
+  select(SIS.Id, Assignment.Name, Points.Possible, Due.Date, Unlocked.Date,
+         Overall.course.grade, Assignment.on.time.percent, Page.Views, Participations)
+
+######## Join to gradebook and remove identifying info ############
+grades <- grades %>%
+  inner_join(studentSummary, by = "Student.Name") %>%
+  select(!c(Student.Name:Section)) %>%
+  select(SIS.Id, everything())
+
+######## Remove identifying info from student summary ############
+studentSummary <- studentSummary %>%
+  select(!Student.Name)
+```
+
+## Write deidentified datasets
+
+```{r}
+######## Write cleaned data to csv file ################
+write.csv(studentSummary,paste0(here(),"/clean_data/F21_Ashley/studentSummary.csv"),row.names = FALSE)
+write.csv(late,paste0(here(),"/clean_data/F21_Ashley/lateAssignments.csv"),row.names = FALSE)
+write.csv(missing,paste0(here(),"/clean_data/F21_Ashley/missingAssignments.csv"),row.names = FALSE)
+write.csv(grades,paste0(here(),"/clean_data/F21_Ashley/gradebook.csv"),row.names = FALSE)
+```
+
+
+
+
+
+
+
