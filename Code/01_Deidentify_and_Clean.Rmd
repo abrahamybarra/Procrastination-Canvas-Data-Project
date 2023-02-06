@@ -19,11 +19,11 @@ library(here)
 ## Read in data
 
 ```{r}
-######## Read in F21 (Ashley) Data ############
-studentSummary <- read.csv(paste0(here(),"/raw_data/F21/studentSummary.csv"), header = TRUE)
+######## Read in F21 Data ############
+studentSummary <- read.csv(paste0(here(),"/raw_data/F21/studentSummary.csv"), header = TRUE) # N = 181
 late <- read.csv(paste0(here(),"/raw_data/F21/lateAssignments.csv"), header = TRUE)
 missing <- read.csv(paste0(here(),"/raw_data/F21/missingAssignments.csv"), header = TRUE)
-grades <- read.csv(paste0(here(),"/raw_data/F21/gradebook.csv"), header = TRUE)
+grades <- read.csv(paste0(here(),"/raw_data/F21/gradebook.csv"), header = TRUE) # N = 178 (why?)
 ```
 
 ## Deidentify data
@@ -64,7 +64,7 @@ studentSummary <- studentSummary %>%
 ## Write deidentified datasets
 
 ```{r}
-######## Write cleaned data to csv file ################
+######## Write cleaned F21 (Ashley) data to csv file ################
 write.csv(studentSummary,paste0(here(),"/clean_data/F21_Ashley/studentSummary.csv"),row.names = FALSE)
 write.csv(late,paste0(here(),"/clean_data/F21_Ashley/lateAssignments.csv"),row.names = FALSE)
 write.csv(missing,paste0(here(),"/clean_data/F21_Ashley/missingAssignments.csv"),row.names = FALSE)

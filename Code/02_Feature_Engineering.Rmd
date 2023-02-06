@@ -1,0 +1,66 @@
+---
+title: "02_Feature_Engineering"
+author: "Abraham Ybarra"
+date: '2023-02-06'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load libraries
+
+```{r cars}
+library(tidyverse)
+library(here)
+```
+
+## Read in data
+
+```{r}
+######## Read in F21 (Ashley) Data ############
+studentSummary <- read.csv(paste0(here(),"/clean_data/F21_Ashley/studentSummary.csv"), header = TRUE)
+late <- read.csv(paste0(here(),"/clean_data/F21_Ashley/lateAssignments.csv"), header = TRUE)
+missing <- read.csv(paste0(here(),"/clean_data/F21_Ashley/missingAssignments.csv"), header = TRUE)
+grades <- read.csv(paste0(here(),"/clean_data/F21_Ashley/gradebook.csv"), header = TRUE)
+```
+
+## Create new variables
+
+```{r}
+######## Create variable for % of all assignments submitted late, missing, etc. ############
+missingSummary <- missing %>%
+  group_by(SIS.Id) %>%
+  summarise(numMissing = n()) 
+
+lateSummary <- late %>%
+  group_by(SIS.Id) %>%
+  summarise(numLate = n())
+
+studentSummary <- studentSummary %>%
+  left_join(missingSummary, by = "SIS.Id") %>%
+  left_join(lateSummary, by = "SIS.Id") %>%
+  mutate(numAssignmentsTot = 150, 
+         numMissing = ifelse(is.na(numMissing), 0, numMissing),
+         pctMissing = numMissing / numAssignmentsTot,
+         numLate = ifelse(is.na(numLate), 0, numLate),
+         pctlLate = numLate / numAssignmentsTot,
+         numNotOnTime = numMissing + numLate,
+         pctNotOnTime = numNotOnTime / numAssignmentsTot,
+         numOnTime = numAssignmentsTot - numNotOnTime,
+         pctOnTime = numOnTime / numAssignmentsTot) %>%
+  relocate(numAssignmentsTot, .before = numMissing)
+```
+
+## Write to csv
+
+```{r}
+######## Write cleaned F21 (Ashley) data to csv file ################
+write.csv(studentSummary,paste0(here(),"/clean_data/F21_Ashley/studentSummary.csv"),row.names = FALSE)
+```
+
+
+
+
+

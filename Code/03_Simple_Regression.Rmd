@@ -1,5 +1,5 @@
 ---
-title: "02_Simple_Regression"
+title: "03_Simple_Regression"
 author: "Abraham Ybarra"
 date: '2023-02-03'
 output: html_document
@@ -14,7 +14,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(tidyverse)
 library(here)
-library(afex)
 ```
 
 ## Read in data
@@ -45,13 +44,16 @@ scatter_plot <- function(title, xvar, yvar, ylim = c(0,100), model = NULL) {
     ggtitle(paste(xvar,"vs",yvar)) +
     xlab(xvar) + 
     ylab(yvar) +
+    
+    # Font size 
     theme(title = element_text(size = 15),
           text = element_text(size = 11),
           axis.text.x = element_text(margin = margin(5,0,20,0)),
           axis.text.y = element_text(margin = margin(0,5,0,20)),
-          plot.title = element_text(margin = margin(0,0,20,0), hjust = 0.5))
+          plot.title = element_text(margin = margin(0,0,20,0), hjust = 0.5)) +
+    theme_classic()
   
-  ggsave(paste0(here(),"/Plots/",title,".jpeg"))
+  ggsave(paste0(here(),"/Plots/Simple Regression/",title,".jpeg"))
 }
 ```
 
@@ -59,9 +61,9 @@ scatter_plot <- function(title, xvar, yvar, ylim = c(0,100), model = NULL) {
 
 ```{r}
 ######## Scatter plots of key variables vs. overall course grade ############
-scatter_plot(title = "On time pct vs grade", xvar = "Assignment.on.time.percent", yvar = "Overall.course.grade", ylim = c(50,100))
-scatter_plot(title = "Page view vs grade", xvar = "Page.Views", yvar = "Overall.course.grade", ylim = c(50,100))
-scatter_plot(title = "Participations vs grade", xvar = "Participations", yvar = "Overall.course.grade", ylim = c(50,100))
+# scatter_plot(title = "On time pct vs grade", xvar = "Assignment.on.time.percent", yvar = "Overall.course.grade", ylim = c(50,100))
+# scatter_plot(title = "Page view vs grade", xvar = "Page.Views", yvar = "Overall.course.grade", ylim = c(50,100))
+# scatter_plot(title = "Participations vs grade", xvar = "Participations", yvar = "Overall.course.grade", ylim = c(50,100))
 ```
 
 
@@ -70,25 +72,36 @@ scatter_plot(title = "Participations vs grade", xvar = "Participations", yvar = 
 ```{r}
 ######## Mean center predictor variables ############
 studentSummary <- studentSummary %>%
-  mutate(across(c(Assignment.on.time.percent, Page.Views, Participations), ~ .x - mean(.x)))
+  mutate(across(c(Assignment.on.time.percent, pctOnTime, Page.Views, Participations), ~ .x - mean(.x), .names = "{.col}.c" ))
 
 set_sum_contrasts()
 
 ######## Create models ############
-m.1 <- lm(Overall.course.grade ~ Assignment.on.time.percent,  data = studentSummary)
-summary(m.1)
+# Without mean centered predictors, for plotting only
+m.1 <- lm(Overall.course.grade ~ pctOnTime,  data = studentSummary)
+
+m.1b <- lm(Overall.course.grade ~ Assignment.on.time.percent,  data = studentSummary)
 
 m.2 <- lm(Overall.course.grade ~ Page.Views,  data = studentSummary)
-summary(m.2)
 
 m.3 <- lm(Overall.course.grade ~ Participations,  data = studentSummary)
-summary(m.3)
 
-m.4 <- lm(Overall.course.grade ~ Assignment.on.time.percent * Page.Views,  data = studentSummary)
-summary(m.4)
 
-m.5 <- lm(Overall.course.grade ~ Assignment.on.time.percent * Page.Views * Participations,  data = studentSummary)
-summary(m.5)
+# With mean centered predictors, for interpretation
+m.1.c <- lm(Overall.course.grade ~ pctOnTime.c,  data = studentSummary)
+summary(m.1.c)
+
+m.1b.c <- lm(Overall.course.grade ~ Assignment.on.time.percent,  data = studentSummary)
+summary(m.1b.c)
+
+m.2.c <- lm(Overall.course.grade ~ Page.Views.c,  data = studentSummary)
+summary(m.2.c)
+
+m.3.c <- lm(Overall.course.grade ~ Participations.c,  data = studentSummary)
+summary(m.3.c)
+
+m.4.c <- lm(Overall.course.grade ~ pctOnTime.c * Page.Views.c * Participations.c,  data = studentSummary)
+summary(m.4.c)
 ```
 
 
@@ -99,13 +112,13 @@ summary(m.5)
 studentSummary <- studentSummary %>%
   mutate(m.1.pred = predict(m.1),
          m.2.pred = predict(m.2),
-         m.3.pred = predict(m.3),
-         m.4.pred = predict(m.4),
-         m.5.pred = predict(m.5))
+         m.3.pred = predict(m.3))
 
 ######## Scatter plots of key variables vs. overall course grade ############
-scatter_plot(title = "REG On time pct vs grade", xvar = "Assignment.on.time.percent", yvar = "Overall.course.grade", ylim = c(50,100), 
+scatter_plot(title = "REG On time pct (new) vs grade", xvar = "pctOnTime", yvar = "Overall.course.grade", ylim = c(50,100), 
              model = m.1)
+scatter_plot(title = "REG On time pct (old) vs grade", xvar = "Assignment.on.time.percent", yvar = "Overall.course.grade", 
+             ylim = c(50,100), model = m.1b)
 scatter_plot(title = "REG Page view vs grade", xvar = "Page.Views", yvar = "Overall.course.grade", ylim = c(50,100),
              model = m.2)
 scatter_plot(title = "REG Participations vs grade", xvar = "Participations", yvar = "Overall.course.grade", ylim = c(50,100),
