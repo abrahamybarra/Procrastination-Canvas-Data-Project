@@ -31,26 +31,26 @@ grades <- read.csv(paste0(here(),"/clean_data/F21_Ashley/gradebook.csv"), header
 ```{r}
 ######## Create variable for % of all assignments submitted late, missing, etc. ############
 missingSummary <- missing %>%
-  group_by(SIS.Id) %>%
+  group_by(Random.Id) %>%
   summarise(numMissing = n()) 
 
 lateSummary <- late %>%
-  group_by(SIS.Id) %>%
+  group_by(Random.Id) %>%
   summarise(numLate = n())
 
 studentSummary <- studentSummary %>%
-  left_join(missingSummary, by = "SIS.Id") %>%
-  left_join(lateSummary, by = "SIS.Id") %>%
-  mutate(numAssignmentsTot = 150, 
+  left_join(missingSummary, by = "Random.Id") %>%
+  left_join(lateSummary, by = "Random.Id") %>%
+  mutate(numAssignmentsTot = 150, # TODO: how many assignments total?
          numMissing = ifelse(is.na(numMissing), 0, numMissing),
          pctMissing = numMissing / numAssignmentsTot,
          numLate = ifelse(is.na(numLate), 0, numLate),
-         pctlLate = numLate / numAssignmentsTot,
+         pctLate = numLate / numAssignmentsTot,
          numNotOnTime = numMissing + numLate,
          pctNotOnTime = numNotOnTime / numAssignmentsTot,
          numOnTime = numAssignmentsTot - numNotOnTime,
          pctOnTime = numOnTime / numAssignmentsTot) %>%
-  relocate(numAssignmentsTot, .before = numMissing)
+  relocate(c(numAssignmentsTot, numMissing, pctMissing), .before = numLate) 
 ```
 
 ## Write to csv

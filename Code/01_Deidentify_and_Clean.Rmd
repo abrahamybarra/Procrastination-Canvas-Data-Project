@@ -30,10 +30,15 @@ grades <- read.csv(paste0(here(),"/raw_data/F21/gradebook.csv"), header = TRUE) 
 
 ```{r}
 ######## Rename column to be joined (SIS id) to match in all datasets ############
+# Randomize the order of rows in the dataset before assigning random id to remove possibility to identify
+set.seed(123)
+studentSummary = studentSummary[sample(1:nrow(studentSummary)), ]
+rownames(studentSummary) <- 1:nrow(studentSummary)  # reset row index
+
 studentSummary <- studentSummary %>%
   rename(Student.Name = Sortable.name) %>%
-  select(Student.Name, SIS.Id, Overall.course.grade, Assignment.on.time.percent, Page.Views, Participations) %>%
-  relocate(SIS.Id, .after = Student.Name)
+  mutate(Random.Id=row_number()) %>%
+  select(Student.Name, Random.Id, Overall.course.grade, Assignment.on.time.percent, Page.Views, Participations)
 
 grades <- grades %>%
   rename(Student.Name = Student)
@@ -41,23 +46,31 @@ grades <- grades %>%
 ######## Join to late assignments and remove identifying info ############
 late <- late %>%
   inner_join(studentSummary, by = "Student.Name") %>%
-  select(SIS.Id, Assignment.Name, Points.Possible, Due.Date, Unlocked.Date, Submitted.Date,
+  select(Random.Id, Assignment.Name, Points.Possible, Due.Date, Unlocked.Date, Submitted.Date,
          Overall.course.grade, Assignment.on.time.percent, Page.Views, Participations)
   
 ######## Join to missing assignments and remove identifying info ############
 missing <- missing %>%
   inner_join(studentSummary, by = "Student.Name") %>%
-  select(SIS.Id, Assignment.Name, Points.Possible, Due.Date, Unlocked.Date,
+  select(Random.Id, Assignment.Name, Points.Possible, Due.Date, Unlocked.Date,
          Overall.course.grade, Assignment.on.time.percent, Page.Views, Participations)
 
-######## Join to gradebook and remove identifying info ############
+######## Join to grade book and remove identifying info ############
+# TODO Why are there more students in summary than in grade book?
+# "West, Ruairhi" – "Barr, Charlemagne" – "Schachtel, Julia"
 grades <- grades %>%
-  inner_join(studentSummary, by = "Student.Name") %>%
-  select(!c(Student.Name:Section)) %>%
-  select(SIS.Id, everything())
+  inner_join(studentSummary, by = "Student.Name") 
 
-######## Remove identifying info from student summary ############
+grades <- grades %>%
+  select(!c(Student.Name:Section)) %>%
+  select(Random.Id, everything())
+
+######## Remove identifying info from student summary, grab final exam score ############
+# TODO Verify final exam score
 studentSummary <- studentSummary %>%
+  inner_join(grades %>% select(Random.Id, Final.Exam.Component.Scores..WEIGHTED.0...IGNORE..Unposted.Current.Score), by = 'Random.Id') %>%
+  rename(Final.Exam.Score = Final.Exam.Component.Scores..WEIGHTED.0...IGNORE..Unposted.Current.Score) %>%
+  relocate(Final.Exam.Score, .after = Overall.course.grade) %>%
   select(!Student.Name)
 ```
 
