@@ -24,9 +24,13 @@ studentSummary <- read.csv(paste0(here(),"/raw_data/F21/studentSummary.csv"), he
 late <- read.csv(paste0(here(),"/raw_data/F21/lateAssignments.csv"), header = TRUE)
 missing <- read.csv(paste0(here(),"/raw_data/F21/missingAssignments.csv"), header = TRUE)
 grades <- read.csv(paste0(here(),"/raw_data/F21/gradebook.csv"), header = TRUE) # N = 178 (why?)
+
+# Read in the data
+assignments <- read.csv(paste0(here(),"/raw_data/psyc_students_report_split.csv"), 
+                        header = TRUE, numerals = "no.loss") # N = 181
 ```
 
-## Deidentify data
+## Deidentify data pulled directly from Canvas
 
 ```{r}
 ######## Rename column to be joined (SIS id) to match in all datasets ############
@@ -74,6 +78,58 @@ studentSummary <- studentSummary %>%
   select(!Student.Name)
 ```
 
+## Clean data from OIT
+
+```{r}
+# Read in the data
+assignments <- read.csv(paste0(here(),"/raw_data/psyc_students_report_split.csv"), 
+                        header = TRUE, numerals = "no.loss") # N = 181
+
+# Keep only relevant columns
+assignments <- assignments %>%
+  select(ANON_ID, CURRENT_SCORE, ASSIGNMENT_ID, ASSIGNMENT_NAME, SCORE, 
+         DUE_DATE, DUE_DATE_DATE, DUE_DATE_TIME, SUBMITTED_AT, SUBMITTED_AT_DATE,
+         SUBMITTED_AT_TIME, ASSIGNMENT_OPEN, ASSIGNMENT_OPEN_DATE, ASSIGNMENT_OPEN_TIME, ASSIGNMENT_CLOSE,
+         ASSIGNMENT_CLOSE_DATE, ASSIGNMENT_CLOSE_TIME, SUBMITTED_FLAG, POINTS_POSSIBLE,LAST_ACTIVITY_AT,
+         LAST_ACTIVITY_AT_DATE, LAST_ACTIVITY_AT_TIME,
+         CLASS_SECTION_CD, SECTION_ID, SEMESTER_START, SEMESTER_END)
+
+# Indicate class section (TODO: Which is Ashley's?), rearrange columns
+assignments <- assignments %>%
+  mutate(YEAR = ifelse(grepl("21", SEMESTER_START),"2021","2022"), .after = SEMESTER_END) %>%
+  mutate(YEAR_SECTION = paste(YEAR, CLASS_SECTION_CD), .after = ANON_ID) # Show year + section
+
+# Separate by year
+assignments_21 <- assignments %>%
+  filter(SEMESTER_END == "12/15/21")
+
+assignments_22 <- assignments %>% 
+  filter(SEMESTER_END == "12/14/22")
+```
+
+## Clean 2021 dataset specifically
+
+```{r}
+assignment_list_21 = unique(assignments_21$ASSIGNMENT_NAME) # list of all assignments
+num_assignments = length(assignment_list_21) # total number of assignments (N = 108)
+
+# Sort assignments by due date (thereby organizing by name as well)
+assignments_21 <- assignments_21 %>%
+  arrange(DUE_DATE)
+
+# Print the names of all assignments with missing due dates
+missing_due_21 <- assignments_21 %>%
+  filter(DUE_DATE == "")
+list_missing_due = unique(missing_due_21$ASSIGNMENT_NAME)
+num_missing_due = length(list_missing_due)
+
+# print the names of all assignments flagged as submitted but with no submission time
+submit_noTime_21 <- assignments_21 %>%
+  filter(SUBMITTED_FLAG == "True" & SUBMITTED_AT == "")
+list_missing_submit = unique(submit_noTime_21$ASSIGNMENT_NAME)
+num_missing_submit = length(list_missing_submit)
+```
+
 ## Write deidentified datasets
 
 ```{r}
@@ -82,6 +138,8 @@ write.csv(studentSummary,paste0(here(),"/clean_data/F21_Ashley/studentSummary.cs
 write.csv(late,paste0(here(),"/clean_data/F21_Ashley/lateAssignments.csv"),row.names = FALSE)
 write.csv(missing,paste0(here(),"/clean_data/F21_Ashley/missingAssignments.csv"),row.names = FALSE)
 write.csv(grades,paste0(here(),"/clean_data/F21_Ashley/gradebook.csv"),row.names = FALSE)
+
+#write.csv(assignments,paste0(here(),"/clean_data/F21_Ashley/allAssignments.csv"),row.names = FALSE)
 ```
 
 
