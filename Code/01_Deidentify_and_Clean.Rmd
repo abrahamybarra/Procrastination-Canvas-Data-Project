@@ -20,18 +20,18 @@ library(here)
 
 ```{r}
 
-get_section=function(path){
+get_section=function(path, section){
   section = read.csv(path) %>%
     filter(!is.na(SIS.User.ID)) %>%
     filter(Student != "Student, Test") %>%
     select(SIS.User.ID, Section) %>% 
     rename(Section.Id=Section, SIS.Id=SIS.User.ID) %>%
-    mutate(Section.Id = gsub('PSYC 2145', 'F21', Section.Id))
+    mutate(Section.Id = gsub('PSYC 2145', section, Section.Id))
   return(section)
 }
 
-f1_section = get_section(paste0(here(),"/raw_data/F21/gradebook.csv"))
-#f2_section = get_section(paste0(here(),"/raw_data/F22/gradebook.csv"))
+f1_section = get_section(paste0(here(),"/raw_data/F21/gradebook.csv"), 'F21')
+#f2_section = get_section(paste0(here(),"/raw_data/F22/gradebook.csv"), 'F22')
 
 ```
 
