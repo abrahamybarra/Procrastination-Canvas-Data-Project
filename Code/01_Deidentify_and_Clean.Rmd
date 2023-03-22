@@ -16,11 +16,32 @@ library(tidyverse)
 library(here)
 ```
 
+# Function to extract section ID based on gradebook 
+
+```{r}
+
+get_section=function(path){
+  section = read.csv(path) %>%
+    filter(!is.na(SIS.User.ID)) %>%
+    filter(Student != "Student, Test") %>%
+    select(SIS.User.ID, Section) %>% 
+    rename(Section.Id=Section, SIS.Id=SIS.User.ID) %>%
+    mutate(Section.Id = gsub('PSYC 2145', 'F21', Section.Id))
+  return(section)
+}
+
+f1_section = get_section(paste0(here(),"/raw_data/F21/gradebook.csv"))
+#f2_section = get_section(paste0(here(),"/raw_data/F22/gradebook.csv"))
+
+```
+
 ## Read in data
 
 ```{r}
 ######## Read in F21 Data ############
-studentSummary <- read.csv(paste0(here(),"/raw_data/F21/studentSummary.csv"), header = TRUE) # N = 181
+studentSummary <- read.csv(paste0(here(),"/raw_data/F21/studentSummary.csv"), header = TRUE) %>%
+  #mergeing in section data
+  merge(f1_section, on=c('SIS.Id')) # N = 181
 late <- read.csv(paste0(here(),"/raw_data/F21/lateAssignments.csv"), header = TRUE)
 missing <- read.csv(paste0(here(),"/raw_data/F21/missingAssignments.csv"), header = TRUE)
 grades <- read.csv(paste0(here(),"/raw_data/F21/gradebook.csv"), header = TRUE) # N = 178 (why?)
