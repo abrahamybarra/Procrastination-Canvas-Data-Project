@@ -9,14 +9,14 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Load libraries
+## 1) Load libraries
 
 ```{r}
 library(tidyverse)
 library(here)
 ```
 
-# Function to extract section ID based on gradebook 
+# 2) Function to extract section ID based on gradebook 
 
 ```{r}
 
@@ -30,81 +30,40 @@ get_section=function(path, section){
   return(section)
 }
 
-f1_section = get_section(paste0(here(),"/raw_data/F21/gradebook.csv"), 'F21')
-#f2_section = get_section(paste0(here(),"/raw_data/F22/gradebook.csv"), 'F22')
+f21_section = get_section(paste0(here(),"/raw_data/F21/gradebook.csv"), 'F21') # N = 346
+f22_section = get_section(paste0(here(),"/raw_data/F22/gradebook.csv"), 'F22') # N = 192
+# all_section = full_join(f1_section, f2_section, by = "SIS.Id")
 
 ```
 
-## Read in data
+## 3) Read in data 
 
 ```{r}
-######## Read in F21 Data ############
-studentSummary <- read.csv(paste0(here(),"/raw_data/F21/studentSummary.csv"), header = TRUE) %>%
-  #mergeing in section data
-  merge(f1_section, on=c('SIS.Id')) # N = 181
-late <- read.csv(paste0(here(),"/raw_data/F21/lateAssignments.csv"), header = TRUE)
-missing <- read.csv(paste0(here(),"/raw_data/F21/missingAssignments.csv"), header = TRUE)
-grades <- read.csv(paste0(here(),"/raw_data/F21/gradebook.csv"), header = TRUE) # N = 178 (why?)
-
-# Read in the data
+######## Read in Data ############
+# Main assignment dataset from OIT
 assignments <- read.csv(paste0(here(),"/raw_data/psyc_students_report_split.csv"), 
-                        header = TRUE, numerals = "no.loss") # N = 181
+                        header = TRUE, numerals = "no.loss") # N = 372??
+
+# Dataset with student ID's
+sid_key <- read.csv(paste0(here(),"/raw_data/sid_key.csv"), header = TRUE)
+
+# Additional Datasets (F21 only)
+studentSummary_21 <- read.csv(paste0(here(),"/raw_data/F21/studentSummary.csv"), header = TRUE) %>%
+  # join with section label
+  left_join(f21_section, by = c('SIS.Id')) # N = 181?!
+late_21 <- read.csv(paste0(here(),"/raw_data/F21/lateAssignments.csv"), header = TRUE)
+missing_21 <- read.csv(paste0(here(),"/raw_data/F21/missingAssignments.csv"), header = TRUE)
+grades_21 <- read.csv(paste0(here(),"/raw_data/F21/gradebook.csv"), header = TRUE) # N = 349
 ```
 
-## Deidentify data pulled directly from Canvas
 
-```{r}
-######## Rename column to be joined (SIS id) to match in all datasets ############
-# Randomize the order of rows in the dataset before assigning random id to remove possibility to identify
-set.seed(123)
-studentSummary = studentSummary[sample(1:nrow(studentSummary)), ]
-rownames(studentSummary) <- 1:nrow(studentSummary)  # reset row index
 
-studentSummary <- studentSummary %>%
-  rename(Student.Name = Sortable.name) %>%
-  mutate(Random.Id=row_number()) %>%
-  select(Student.Name, Random.Id, Overall.course.grade, Assignment.on.time.percent, Page.Views, Participations)
-
-grades <- grades %>%
-  rename(Student.Name = Student)
-
-######## Join to late assignments and remove identifying info ############
-late <- late %>%
-  inner_join(studentSummary, by = "Student.Name") %>%
-  select(Random.Id, Assignment.Name, Points.Possible, Due.Date, Unlocked.Date, Submitted.Date,
-         Overall.course.grade, Assignment.on.time.percent, Page.Views, Participations)
-  
-######## Join to missing assignments and remove identifying info ############
-missing <- missing %>%
-  inner_join(studentSummary, by = "Student.Name") %>%
-  select(Random.Id, Assignment.Name, Points.Possible, Due.Date, Unlocked.Date,
-         Overall.course.grade, Assignment.on.time.percent, Page.Views, Participations)
-
-######## Join to grade book and remove identifying info ############
-# TODO Why are there more students in summary than in grade book?
-# "West, Ruairhi" – "Barr, Charlemagne" – "Schachtel, Julia"
-grades <- grades %>%
-  inner_join(studentSummary, by = "Student.Name") 
-
-grades <- grades %>%
-  select(!c(Student.Name:Section)) %>%
-  select(Random.Id, everything())
-
-######## Remove identifying info from student summary, grab final exam score ############
-# TODO Verify final exam score
-studentSummary <- studentSummary %>%
-  inner_join(grades %>% select(Random.Id, Final.Exam.Component.Scores..WEIGHTED.0...IGNORE..Unposted.Current.Score), by = 'Random.Id') %>%
-  rename(Final.Exam.Score = Final.Exam.Component.Scores..WEIGHTED.0...IGNORE..Unposted.Current.Score) %>%
-  relocate(Final.Exam.Score, .after = Overall.course.grade) %>%
-  select(!Student.Name)
-```
-
-## Clean data from OIT
+## 4) Clean data from OIT
 
 ```{r}
 # Read in the data
 assignments <- read.csv(paste0(here(),"/raw_data/psyc_students_report_split.csv"), 
-                        header = TRUE, numerals = "no.loss") # N = 181
+                        header = TRUE, numerals = "no.loss") # N = 372
 
 # Keep only relevant columns
 assignments <- assignments %>%
@@ -115,52 +74,119 @@ assignments <- assignments %>%
          LAST_ACTIVITY_AT_DATE, LAST_ACTIVITY_AT_TIME,
          CLASS_SECTION_CD, SECTION_ID, SEMESTER_START, SEMESTER_END)
 
-# Indicate class section (TODO: Which is Ashley's?), rearrange columns
+# ADD Student ID (DEIDENTIFY LATER!), rearrange columns. N = 370 after this step (?)
 assignments <- assignments %>%
   mutate(YEAR = ifelse(grepl("21", SEMESTER_START),"2021","2022"), .after = SEMESTER_END) %>%
-  mutate(YEAR_SECTION = paste(YEAR, CLASS_SECTION_CD), .after = ANON_ID) # Show year + section
+  inner_join(sid_key, by = "ANON_ID") %>%
+  relocate(CLASS_SECTION_CD:STUDENT_ID, .after = ANON_ID) %>%
+  rename(SIS.Id = STUDENT_ID)
 
-# Separate by year
-assignments_21 <- assignments %>%
-  filter(SEMESTER_END == "12/15/21")
+# assignments <- assignments %>%
+#   mutate(YEAR_SECTION = paste(YEAR, CLASS_SECTION_CD), .after = ANON_ID) # Show year + section
 
-assignments_22 <- assignments %>% 
-  filter(SEMESTER_END == "12/14/22")
+# Separate by year 
+assignments_21 <- assignments %>% # (N = 179)
+  filter(SEMESTER_END == "12/15/21") %>%
+  inner_join(f21_section, by = "SIS.Id") %>%
+  relocate(Section.Id, .after = SIS.Id)
+
+assignments_22 <- assignments %>% # (N = 191)
+  filter(SEMESTER_END == "12/14/22") %>%
+  inner_join(f22_section, by = "SIS.Id") %>%
+  relocate(Section.Id, .after = SIS.Id)
+
+# REMOVE Student ID (deidentify)
+assignments_21 <- assignments_21 %>%
+  select(-SIS.Id)
+
+assignments_22 <- assignments_22 %>%
+  select(-SIS.Id)
+
+# ISSUE: For now, OIT included only one section for F21 (-001). Ashley's?
+unique(assignments_21$Section.Id)
 ```
 
-## Clean 2021 dataset specifically
+## 5) Clean F21 assignments/assignment names specifically
 
 ```{r}
-assignment_list_21 = unique(assignments_21$ASSIGNMENT_NAME) # list of all assignments
+# Print list of all assignments
+assignment_list_21 = unique(assignments_21$ASSIGNMENT_NAME)
 num_assignments = length(assignment_list_21) # total number of assignments (N = 108)
 
 # Sort assignments by due date (thereby organizing by name as well)
 assignments_21 <- assignments_21 %>%
   arrange(DUE_DATE)
 
-# Print the names of all assignments with missing due dates
-missing_due_21 <- assignments_21 %>%
+# Print the names of all assignments with missing_21 due dates
+missing_21_due_21 <- assignments_21 %>%
   filter(DUE_DATE == "")
-list_missing_due = unique(missing_due_21$ASSIGNMENT_NAME)
-num_missing_due = length(list_missing_due)
+list_missing_21_due = unique(missing_21_due_21$ASSIGNMENT_NAME)
+num_missing_21_due = length(list_missing_21_due)
 
 # print the names of all assignments flagged as submitted but with no submission time
 submit_noTime_21 <- assignments_21 %>%
   filter(SUBMITTED_FLAG == "True" & SUBMITTED_AT == "")
-list_missing_submit = unique(submit_noTime_21$ASSIGNMENT_NAME)
-num_missing_submit = length(list_missing_submit)
+list_missing_21_submit = unique(submit_noTime_21$ASSIGNMENT_NAME)
+num_missing_21_submit = length(list_missing_21_submit)
 ```
 
-## Write deidentified datasets
+## 6) Deidentify data pulled directly from Canvas (F21)
+
+```{r}
+######## Rename column to be joined (Student.Name) to match in all datasets ############
+# Randomize the order of rows in the dataset before assigning random id to remove possibility to identify
+set.seed(123)
+studentSummary_21 = studentSummary_21[sample(1:nrow(studentSummary_21)), ]
+rownames(studentSummary_21) <- 1:nrow(studentSummary_21)  # reset row index
+
+studentSummary_21 <- studentSummary_21 %>%
+  rename(Student.Name = Sortable.name) %>%
+  mutate(Random.Id=row_number()) %>%
+  select(Student.Name, Random.Id, Overall.course.grade, Assignment.on.time.percent, Page.Views, Participations)
+
+grades_21 <- grades_21 %>%
+  rename(Student.Name = Student)
+
+######## Join to late_21 assignments and remove identifying info ############
+late_21 <- late_21 %>%
+  inner_join(studentSummary_21, by = "Student.Name") %>%
+  select(Random.Id, Assignment.Name, Points.Possible, Due.Date, Unlocked.Date, Submitted.Date,
+         Overall.course.grade, Assignment.on.time.percent, Page.Views, Participations)
+  
+######## Join to missing_21 assignments and remove identifying info ############
+missing_21 <- missing_21 %>%
+  inner_join(studentSummary_21, by = "Student.Name") %>%
+  select(Random.Id, Assignment.Name, Points.Possible, Due.Date, Unlocked.Date,
+         Overall.course.grade, Assignment.on.time.percent, Page.Views, Participations)
+
+######## Join to grade book and remove identifying info ############
+# TODO Why are there more students in summary than in grade book?
+# "West, Ruairhi" – "Barr, Charlemagne" – "Schachtel, Julia"
+grades_21 <- grades_21 %>%
+  inner_join(studentSummary_21, by = "Student.Name") 
+
+grades_21 <- grades_21 %>%
+  select(!c(Student.Name:Section)) %>%
+  select(Random.Id, everything())
+
+######## Remove identifying info from student summary, grab final exam score ############
+# TODO Verify final exam score
+studentSummary_21 <- studentSummary_21 %>%
+  inner_join(grades_21 %>% select(Random.Id,Final.Exam.Component.Scores..WEIGHTED.0...IGNORE..Unposted.Current.Score), by = 'Random.Id') %>%
+  rename(Final.Exam.Score = Final.Exam.Component.Scores..WEIGHTED.0...IGNORE..Unposted.Current.Score) %>%
+  relocate(Final.Exam.Score, .after = Overall.course.grade) %>%
+  select(!Student.Name)
+```
+
+## 8) Write deidentified datasets
 
 ```{r}
 ######## Write cleaned F21 (Ashley) data to csv file ################
-write.csv(studentSummary,paste0(here(),"/clean_data/F21_Ashley/studentSummary.csv"),row.names = FALSE)
-write.csv(late,paste0(here(),"/clean_data/F21_Ashley/lateAssignments.csv"),row.names = FALSE)
-write.csv(missing,paste0(here(),"/clean_data/F21_Ashley/missingAssignments.csv"),row.names = FALSE)
-write.csv(grades,paste0(here(),"/clean_data/F21_Ashley/gradebook.csv"),row.names = FALSE)
-
-#write.csv(assignments,paste0(here(),"/clean_data/F21_Ashley/allAssignments.csv"),row.names = FALSE)
+write.csv(studentSummary_21,paste0(here(),"/clean_data/F21_Ashley/studentSummary.csv"),row.names = FALSE)
+write.csv(late_21,paste0(here(),"/clean_data/F21_Ashley/lateAssignments.csv"),row.names = FALSE)
+write.csv(missing_21,paste0(here(),"/clean_data/F21_Ashley/missingAssignments.csv"),row.names = FALSE)
+write.csv(grades_21,paste0(here(),"/clean_data/F21_Ashley/gradebook.csv"),row.names = FALSE)
+write.csv(assignments_21,paste0(here(),"/clean_data/F21_Ashley/assignments.csv"),row.names = FALSE)
 ```
 
 
