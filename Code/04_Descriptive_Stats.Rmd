@@ -31,7 +31,7 @@ assignments_21A <- read.csv(paste0(here(),"/clean_data/F21_Ashley/assignments.cs
 
 ```{r}
 ######## Histogram plotting function ############
-plot_histogram <- function(df, xvar, binwidth) {
+plot_histogram <- function(df, xvar, binwidth, xlim) {
   p <- ggplot(df) +
     
     # aesthetics
@@ -39,7 +39,9 @@ plot_histogram <- function(df, xvar, binwidth) {
       
     # title and label axes
     ggtitle(paste("Distribution of", xvar)) +
-    xlab(xvar) + 
+    xlab(xvar) +
+    
+    xlim(xlim) +
     
     # Font size
    theme(text = element_text(size = 12),
@@ -58,8 +60,8 @@ plot_histogram <- function(df, xvar, binwidth) {
 plot_histogram(df = studentSummary_21A, xvar = "OVERALL_COURSE_GRADE", binwidth = 5)
 plot_histogram(df = studentSummary_21A, xvar = "FINAL_EXAM_SCORE", binwidth = 5)
 plot_histogram(df = studentSummary_21A, xvar = "PCT_ON_TIME", binwidth = .05)
-plot_histogram(df = studentSummary_21A, xvar = "MEAN_HOUR_DIFF", binwidth = .05)
-plot_histogram(df = assignments_21A, xvar = "HOUR_DIFF", binwidth = .05)
+plot_histogram(df = studentSummary_21A, xvar = "MEAN_HOUR_DIFF", binwidth = 5)
+plot_histogram(df = assignments_21A, xvar = "HOUR_DIFF", binwidth = 5, xlim = c(-200,200))
 # plot_histogram(df = studentSummary_21A, xvar = "Page.Views", binwidth = 100)
 # plot_histogram(df = studentSummary_21A, xvar = "Participations", binwidth = 10)
 ```
