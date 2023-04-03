@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Load libraries
 
-```{r cars}
+```{r}
 library(tidyverse)
 library(here)
 ```
@@ -20,18 +20,19 @@ library(here)
 
 ```{r}
 ######## Read in F21 (Ashley) Data ############
-studentSummary <- read.csv(paste0(here(),"/clean_data/F21_Ashley/studentSummary.csv"), header = TRUE)
-late <- read.csv(paste0(here(),"/clean_data/F21_Ashley/lateAssignments.csv"), header = TRUE)
-missing <- read.csv(paste0(here(),"/clean_data/F21_Ashley/missingAssignments.csv"), header = TRUE)
-grades <- read.csv(paste0(here(),"/clean_data/F21_Ashley/gradebook.csv"), header = TRUE)
+studentSummary_21A <- read.csv(paste0(here(),"/clean_data/F21_Ashley/studentSummary.csv"), header = TRUE)
+assignments_21A <- read.csv(paste0(here(),"/clean_data/F21_Ashley/assignments.csv"), header = TRUE, numerals = "no.loss")
+# late <- read.csv(paste0(here(),"/clean_data/F21_Ashley/lateAssignments.csv"), header = TRUE)
+# missing <- read.csv(paste0(here(),"/clean_data/F21_Ashley/missingAssignments.csv"), header = TRUE)
+# grades <- read.csv(paste0(here(),"/clean_data/F21_Ashley/gradebook.csv"), header = TRUE)
 ```
 
 ## Histogram plotting function
 
 ```{r}
 ######## Histogram plotting function ############
-plot_histogram <- function(xvar, binwidth) {
-  p <- ggplot(studentSummary) +
+plot_histogram <- function(df, xvar, binwidth) {
+  p <- ggplot(df) +
     
     # aesthetics
     geom_histogram(aes_string(x = xvar), binwidth = binwidth, color = "blue", fill = "blue", alpha = .5) +
@@ -54,11 +55,13 @@ plot_histogram <- function(xvar, binwidth) {
 ## Plot histograms 
 ```{r}
 ######## Histograms for distribution of each variable ############
-plot_histogram(xvar = "Overall.course.grade", binwidth = 5)
-plot_histogram(xvar = "Final.Exam.Score", binwidth = 5)
-plot_histogram(xvar = "pctOnTime", binwidth = .05)
-plot_histogram(xvar = "Page.Views", binwidth = 100)
-plot_histogram(xvar = "Participations", binwidth = 10)
+plot_histogram(df = studentSummary_21A, xvar = "OVERALL_COURSE_GRADE", binwidth = 5)
+plot_histogram(df = studentSummary_21A, xvar = "FINAL_EXAM_SCORE", binwidth = 5)
+plot_histogram(df = studentSummary_21A, xvar = "PCT_ON_TIME", binwidth = .05)
+plot_histogram(df = studentSummary_21A, xvar = "MEAN_HOUR_DIFF", binwidth = .05)
+plot_histogram(df = assignments_21A, xvar = "HOUR_DIFF", binwidth = .05)
+# plot_histogram(df = studentSummary_21A, xvar = "Page.Views", binwidth = 100)
+# plot_histogram(df = studentSummary_21A, xvar = "Participations", binwidth = 10)
 ```
 
 

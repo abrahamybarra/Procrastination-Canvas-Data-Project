@@ -53,6 +53,7 @@ assignments_21A_submitted <- assignments_21A_submitted %>%
 assignments_21A_submitted <- assignments_21A_submitted %>%
   mutate(HOUR_DIFF = difftime(SUBMITTED_AT, DUE_DATE, units = "hours") %>% as.numeric(), .after = SUBMITTED_AT_TIME)
 
+# Add HOUR_DIFF back to the main dataset
 assignments_21A <- assignments_21A %>%
   left_join(assignments_21A_submitted %>% select(c(UID, HOUR_DIFF)), by = "UID") %>%
   relocate(HOUR_DIFF, .after = SUBMITTED_AT_TIME)
@@ -109,7 +110,9 @@ studentSummary_21A <- assignments_21A %>%
             PCT_MISSING = NUM_MISSING / NUM_ASSIGNMENTS,
             PCT_LATE = NUM_LATE / NUM_ASSIGNMENTS,
             PCT_NOT_ON_TIME = NUM_NOT_ON_TIME / NUM_ASSIGNMENTS,
-            PCT_ON_TIME = NUM_ON_TIME / NUM_ASSIGNMENTS)
+            PCT_ON_TIME = NUM_ON_TIME / NUM_ASSIGNMENTS,
+            
+            MEAN_HOUR_DIFF = mean(HOUR_DIFF, na.rm = TRUE))
 ```
 
 # Validate with data pulled directly from canvas
