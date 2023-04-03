@@ -20,44 +20,131 @@ library(here)
 
 ```{r}
 ######## Read in F21 (Ashley) Data ############
-studentSummary <- read.csv(paste0(here(),"/clean_data/F21_Ashley/studentSummary.csv"), header = TRUE)
-late <- read.csv(paste0(here(),"/clean_data/F21_Ashley/lateAssignments.csv"), header = TRUE)
-missing <- read.csv(paste0(here(),"/clean_data/F21_Ashley/missingAssignments.csv"), header = TRUE)
-grades <- read.csv(paste0(here(),"/clean_data/F21_Ashley/gradebook.csv"), header = TRUE)
+# studentSummary_21B <- read.csv(paste0(here(),"/clean_data/F21_Ashley/studentSummary.csv"), header = TRUE)
+# late_21B <- read.csv(paste0(here(),"/clean_data/F21_Ashley/lateAssignments.csv"), header = TRUE)
+# missing_21B <- read.csv(paste0(here(),"/clean_data/F21_Ashley/missingAssignments.csv"), header = TRUE)
+# grades_21B <- read.csv(paste0(here(),"/clean_data/F21_Ashley/gradebook.csv"), header = TRUE)
+assignments_21A <- read.csv(paste0(here(),"/clean_data/F21_Ashley/assignments.csv"), header = TRUE, numerals = "no.loss")
 ```
 
-## Create new variables
+## Create new variable for time difference between submission time and due date (CURRENTLY BUGGED)
+
+```{r}
+# Read data
+# assignments_21A <- read.csv(paste0(here(),"/clean_data/F21_Ashley/assignments.csv"), header = TRUE, numerals = "no.loss")
+
+######## Create time diff variable ############
+# Create unique id for each row
+assignments_21A <- assignments_21A %>%
+  mutate(UID = paste(ANON_ID, ASSIGNMENT_NAME))
+
+# TODO: Figure out the issue with date format for SUBMITTED_AT. Code does not work when SUBMITTED_AT is empty (i.e. no submission)
+# even when catching those cases with ifelse(). 
+# TEMP FIX: only analyze assignments with submission time, then join back to full dataset
+assignments_21A_submitted <- assignments_21A %>%
+  filter(SUBMITTED_FLAG == "True")
+
+# Convert date-time values to POSIXct format
+assignments_21A_submitted <- assignments_21A_submitted %>%
+  mutate(DUE_DATE = as.POSIXct(DUE_DATE, format = "%Y-%m-%d %H:%M:%S", tz = "GMT"),
+         SUBMITTED_AT = as.POSIXct(SUBMITTED_AT, format = "%Y-%m-%d %H:%M:%S", tz = "GMT"))
+
+# Compute time difference in hours and store result in new column. Negative means early, positive means late
+assignments_21A_submitted <- assignments_21A_submitted %>%
+  mutate(HOUR_DIFF = difftime(SUBMITTED_AT, DUE_DATE, units = "hours") %>% as.numeric(), .after = SUBMITTED_AT_TIME)
+
+assignments_21A <- assignments_21A %>%
+  left_join(assignments_21A_submitted %>% select(c(UID, HOUR_DIFF)), by = "UID") %>%
+  relocate(HOUR_DIFF, .after = SUBMITTED_AT_TIME)
+```
+
+## Create variables for assignment type
+
+```{r}
+######## Create variables for assignment type ############
+# Print all assignment names
+unique(assignments_21A$ASSIGNMENT_NAME)
+
+assignments_21A <- assignments_21A %>%
+  mutate(ASSIGNMENT_TYPE = case_when(
+    str_detect(ASSIGNMENT_NAME, regex('Short Paper', ignore_case = TRUE)) ~ "Short Paper",
+    str_detect(ASSIGNMENT_NAME, regex('Final Exam', ignore_case = TRUE)) ~ "Final Exam",
+    str_detect(ASSIGNMENT_NAME, regex('Mid-Term Exam', ignore_case = TRUE)) ~ "Mid-Term Exam",
+    str_detect(ASSIGNMENT_NAME, regex('Post-Lecture Quiz', ignore_case = TRUE)) ~ "Post-Lecture Quiz",
+    str_detect(ASSIGNMENT_NAME, regex('Pre-Lecture Assignment', ignore_case = TRUE)) ~ "Pre-Lecture Assignment",
+    str_detect(ASSIGNMENT_NAME, regex('Study habits challenge', ignore_case = TRUE)) ~ "Study Habits Challenge",
+    str_detect(ASSIGNMENT_NAME, regex('Reading Quiz', ignore_case = TRUE)) ~ "Reading Quiz",
+    .default = NA),
+    .after = ASSIGNMENT_NAME)
+```
+
+## Create new variables for % missing, late, on time, etc, as well as overall scores for each assignment type
 
 ```{r}
 ######## Create variable for % of all assignments submitted late, missing, etc. ############
-missingSummary <- missing %>%
-  group_by(Random.Id) %>%
-  summarise(numMissing = n()) 
+# Create variable for score out of 100
+assignments_21A <- assignments_21A %>%
+  mutate(SCORE_100 = SCORE / POINTS_POSSIBLE * 100, .after = POINTS_POSSIBLE)
 
-lateSummary <- late %>%
-  group_by(Random.Id) %>%
-  summarise(numLate = n())
+# Obtain final exam scores, etc. for each student
+studentSummary_21A <- assignments_21A %>%
+  group_by(ANON_ID) %>%
+  summarise(SECTION = unique(Section.Id),
+            
+            SHORT_PAPER_SCORE = sum(if_else(ASSIGNMENT_TYPE == "Short Paper", SCORE, NA), na.rm = TRUE) / sum(if_else(ASSIGNMENT_TYPE == "Short Paper", POINTS_POSSIBLE, NA), na.rm = TRUE) * 100,
+            FINAL_EXAM_SCORE = sum(if_else(ASSIGNMENT_TYPE == "Final Exam", SCORE, NA), na.rm = TRUE) / sum(if_else(ASSIGNMENT_TYPE == "Final Exam", POINTS_POSSIBLE, NA), na.rm = TRUE) * 100,
+            MIDTERM_EXAM_SCORE = sum(if_else(ASSIGNMENT_TYPE == "Mid-Term Exam", SCORE, NA), na.rm = TRUE) / sum(if_else(ASSIGNMENT_TYPE == "Mid-Term Exam", POINTS_POSSIBLE, NA), na.rm = TRUE) * 100,
+            POST_LECTURE_QUIZ_SCORE = sum(if_else(ASSIGNMENT_TYPE == "Post-Lecture Quiz", SCORE, NA), na.rm = TRUE) / sum(if_else(ASSIGNMENT_TYPE == "Post-Lecture Quiz", POINTS_POSSIBLE, NA), na.rm = TRUE) * 100,
+            PRE_LECTURE_ASSIGNMENT_SCORE = sum(if_else(ASSIGNMENT_TYPE == "Pre-Lecture Assignment", SCORE, NA), na.rm = TRUE) / sum(if_else(ASSIGNMENT_TYPE == "Pre-Lecture Assignment", POINTS_POSSIBLE, NA), na.rm = TRUE) * 100,
+            STUDY_HABITS_CHALLENGE_SCORE = sum(if_else(ASSIGNMENT_TYPE == "Study Habits Challenge", SCORE, NA), na.rm = TRUE) / sum(if_else(ASSIGNMENT_TYPE == "Final Exam", POINTS_POSSIBLE, NA), na.rm = TRUE) * 100,
+            READING_QUIZ_SCORE = sum(if_else(ASSIGNMENT_TYPE == "Reading Quiz", SCORE, NA), na.rm = TRUE) / sum(if_else(ASSIGNMENT_TYPE == "Reading Quiz", POINTS_POSSIBLE, NA), na.rm = TRUE) * 100,
+            
+            OVERALL_COURSE_GRADE = (1/7) * SHORT_PAPER_SCORE + (1/7) * FINAL_EXAM_SCORE + (1/7) * MIDTERM_EXAM_SCORE + (1/7) * (POST_LECTURE_QUIZ_SCORE) + (1/7) * PRE_LECTURE_ASSIGNMENT_SCORE + (1/7) * STUDY_HABITS_CHALLENGE_SCORE + (1/7) * READING_QUIZ_SCORE,
+            
+            NUM_ASSIGNMENTS = n(),
+            NUM_MISSING = sum(SUBMITTED_FLAG == "False"),
+            NUM_LATE = sum(HOUR_DIFF > 0, na.rm = TRUE),
+            NUM_NOT_ON_TIME = NUM_MISSING + NUM_LATE,
+            NUM_ON_TIME = NUM_ASSIGNMENTS - NUM_NOT_ON_TIME,
+            PCT_MISSING = NUM_MISSING / NUM_ASSIGNMENTS,
+            PCT_LATE = NUM_LATE / NUM_ASSIGNMENTS,
+            PCT_NOT_ON_TIME = NUM_NOT_ON_TIME / NUM_ASSIGNMENTS,
+            PCT_ON_TIME = NUM_ON_TIME / NUM_ASSIGNMENTS)
+```
 
-studentSummary <- studentSummary %>%
-  left_join(missingSummary, by = "Random.Id") %>%
-  left_join(lateSummary, by = "Random.Id") %>%
-  mutate(numAssignmentsTot = 150, # TODO: how many assignments total?
-         numMissing = ifelse(is.na(numMissing), 0, numMissing),
-         pctMissing = numMissing / numAssignmentsTot,
-         numLate = ifelse(is.na(numLate), 0, numLate),
-         pctLate = numLate / numAssignmentsTot,
-         numNotOnTime = numMissing + numLate,
-         pctNotOnTime = numNotOnTime / numAssignmentsTot,
-         numOnTime = numAssignmentsTot - numNotOnTime,
-         pctOnTime = numOnTime / numAssignmentsTot) %>%
-  relocate(c(numAssignmentsTot, numMissing, pctMissing), .before = numLate) 
+# Validate with data pulled directly from canvas
+
+```{r}
+# Calculate missing, late, on time, etc. using data pulled directly from canvas
+# missingSummary_21B <- missing_21B %>%
+#   group_by(Random.Id) %>%
+#   summarise(numMissing = n())
+# 
+# lateSummary_21B <- late_21B %>%
+#   group_by(Random.Id) %>%
+#   summarise(numLate = n())
+# 
+# studentSummary_21B <- studentSummary_21B %>%
+#   left_join(missingSummary_21B, by = "Random.Id") %>%
+#   left_join(lateSummary_21B, by = "Random.Id") %>%
+#   mutate(numAssignmentsTot = 150, # TODO: how many assignments total?
+#          numMissing = ifelse(is.na(numMissing), 0, numMissing),
+#          pctMissing = numMissing / numAssignmentsTot,
+#          numLate = ifelse(is.na(numLate), 0, numLate),
+#          pctLate = numLate / numAssignmentsTot,
+#          numNotOnTime = numMissing + numLate,
+#          pctNotOnTime = numNotOnTime / numAssignmentsTot,
+#          numOnTime = numAssignmentsTot - numNotOnTime,
+#          pctOnTime = numOnTime / numAssignmentsTot) %>%
+#   relocate(c(numAssignmentsTot, numMissing, pctMissing), .before = numLate)
 ```
 
 ## Write to csv
 
 ```{r}
 ######## Write cleaned F21 (Ashley) data to csv file ################
-write.csv(studentSummary,paste0(here(),"/clean_data/F21_Ashley/studentSummary.csv"),row.names = FALSE)
+write.csv(studentSummary_21A,paste0(here(),"/clean_data/F21_Ashley/studentSummary.csv"), row.names = FALSE)
+write.csv(assignments_21A,paste0(here(),"/clean_data/F21_Ashley/assignments.csv"), row.names = FALSE)
 ```
 
 

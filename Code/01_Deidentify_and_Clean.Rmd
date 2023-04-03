@@ -19,7 +19,6 @@ library(here)
 # 2) Function to extract section ID based on gradebook 
 
 ```{r}
-
 get_section=function(path, section){
   section = read.csv(path) %>%
     filter(!is.na(SIS.User.ID)) %>%
@@ -33,7 +32,6 @@ get_section=function(path, section){
 f21_section = get_section(paste0(here(),"/raw_data/F21/gradebook.csv"), 'F21') # N = 346
 f22_section = get_section(paste0(here(),"/raw_data/F22/gradebook.csv"), 'F22') # N = 192
 # all_section = full_join(f1_section, f2_section, by = "SIS.Id")
-
 ```
 
 ## 3) Read in data 
@@ -67,11 +65,10 @@ assignments <- read.csv(paste0(here(),"/raw_data/psyc_students_report_split.csv"
 
 # Keep only relevant columns
 assignments <- assignments %>%
-  select(ANON_ID, CURRENT_SCORE, ASSIGNMENT_ID, ASSIGNMENT_NAME, SCORE, 
+  select(ANON_ID, CURRENT_SCORE, ASSIGNMENT_ID, ASSIGNMENT_NAME, SUBMITTED_FLAG, SCORE, POINTS_POSSIBLE,
          DUE_DATE, DUE_DATE_DATE, DUE_DATE_TIME, SUBMITTED_AT, SUBMITTED_AT_DATE,
          SUBMITTED_AT_TIME, ASSIGNMENT_OPEN, ASSIGNMENT_OPEN_DATE, ASSIGNMENT_OPEN_TIME, ASSIGNMENT_CLOSE,
-         ASSIGNMENT_CLOSE_DATE, ASSIGNMENT_CLOSE_TIME, SUBMITTED_FLAG, POINTS_POSSIBLE,LAST_ACTIVITY_AT,
-         LAST_ACTIVITY_AT_DATE, LAST_ACTIVITY_AT_TIME,
+         ASSIGNMENT_CLOSE_DATE, ASSIGNMENT_CLOSE_TIME, LAST_ACTIVITY_AT, LAST_ACTIVITY_AT_DATE, LAST_ACTIVITY_AT_TIME,
          CLASS_SECTION_CD, SECTION_ID, SEMESTER_START, SEMESTER_END)
 
 # ADD Student ID (DEIDENTIFY LATER!), rearrange columns. N = 370 after this step (?)
@@ -162,26 +159,6 @@ assignments_21 <- assignments_21 %>%
 assignments_21_filtered <- assignments_21 %>%
   filter(!str_detect(SUBMITTED_AT, "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$"))
 unique(assignments_21_filtered$SUBMITTED_AT)
-
-# TODO: Figure out the issue with date format for SUBMITTED_AT
-# (TEMP FIX) remove assignments with no submission
-assignments_21 <- assignments_21 %>%
-  filter(SUBMITTED_FLAG == "True")
-
-# Convert date-time values to POSIXct format
-assignments_21 <- assignments_21 %>%
-  mutate(DUE_DATE = as.POSIXct(DUE_DATE, format = "%Y-%m-%d %H:%M:%S", tz = "GMT"),
-         SUBMITTED_AT = as.POSIXct(SUBMITTED_AT, format = "%Y-%m-%d %H:%M:%S", tz = "GMT"))
-
-# Compute time difference in hours and store result in new column. Negative means early, positive means late
-assignments_21 <- assignments_21 %>%
-  mutate(hour_diff = difftime(SUBMITTED_AT, DUE_DATE, units = "hours") %>% as.numeric(), .after = SUBMITTED_AT_TIME)
-
-# Compute time difference in hours and store result in new column. Negative means early, positive means late
-# assignments_21 <- assignments_21 %>% 
-#   mutate(hour_diff = ifelse(SUBMITTED_AT == "", NA, 
-#                             difftime(as.POSIXct(SUBMITTED_AT), as.POSIXct(DUE_DATE), units = "hours") %>% as.numeric()), 
-#          .after = SUBMITTED_AT_TIME)
 ```
 
 ## 6) Deidentify data pulled directly from Canvas (F21)
