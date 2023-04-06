@@ -57,10 +57,10 @@ plot_histogram <- function(df, xvar, binwidth, xlim) {
 ## Plot histograms 
 ```{r}
 ######## Histograms for distribution of each variable ############
-plot_histogram(df = studentSummary_21A, xvar = "OVERALL_COURSE_GRADE", binwidth = 5)
-plot_histogram(df = studentSummary_21A, xvar = "FINAL_EXAM_SCORE", binwidth = 5)
-plot_histogram(df = studentSummary_21A, xvar = "PCT_ON_TIME", binwidth = .05)
-plot_histogram(df = studentSummary_21A, xvar = "MEAN_HOUR_DIFF", binwidth = 5)
+plot_histogram(df = studentSummary_21A, xvar = "OVERALL_COURSE_GRADE", binwidth = 5, xlim = c(0,100))
+plot_histogram(df = studentSummary_21A, xvar = "FINAL_EXAM_SCORE", binwidth = 5, xlim = c(0,100))
+plot_histogram(df = studentSummary_21A, xvar = "PCT_ON_TIME", binwidth = .05, xlim = c(0,1))
+plot_histogram(df = studentSummary_21A, xvar = "MEAN_HOUR_DIFF", binwidth = 5, xlim = c(-100,100))
 plot_histogram(df = assignments_21A, xvar = "HOUR_DIFF", binwidth = 5, xlim = c(-200,200))
 # plot_histogram(df = studentSummary_21A, xvar = "Page.Views", binwidth = 100)
 # plot_histogram(df = studentSummary_21A, xvar = "Participations", binwidth = 10)
