@@ -28,7 +28,7 @@ assignments_21A <- read.csv(paste0(here(),"/final_data/F21_Ashley/assignments.cs
 
 ```{r}
 ######## Histogram plotting function ############
-plot_histogram <- function(df, xvar, binwidth, xlim) {
+plot_histogram <- function(df, xvar, binwidth, xlim = c(-10,10)) {
   p <- ggplot(df) +
     
     # aesthetics
@@ -51,14 +51,51 @@ plot_histogram <- function(df, xvar, binwidth, xlim) {
 }
 ```
 
+
 ## Plot histograms 
 ```{r}
 ######## Histograms for distribution of each variable ############
 plot_histogram(df = studentSummary_21A, xvar = "OVERALL_COURSE_GRADE", binwidth = 5, xlim = c(0,100))
 plot_histogram(df = studentSummary_21A, xvar = "FINAL_EXAM_SCORE", binwidth = 5, xlim = c(0,100))
 plot_histogram(df = studentSummary_21A, xvar = "PCT_ON_TIME", binwidth = .05, xlim = c(0,1))
+plot_histogram(df = studentSummary_21A, xvar = "PCT_LATE", binwidth = .05, xlim = c(0,.5))
 plot_histogram(df = studentSummary_21A, xvar = "MEAN_HOUR_DIFF", binwidth = 5, xlim = c(-100,100))
 plot_histogram(df = assignments_21A, xvar = "HOUR_DIFF", binwidth = 5, xlim = c(-200,200))
+plot_histogram(df = assignments_21A, xvar = "LOG_HOUR_DIFF", binwidth = .25, xlim = c(2,6))
+plot_histogram(df = assignments_21A, xvar = "YJ_NEG_2", binwidth = .25, xlim = c(-1.5,1.5))
+plot_histogram(df = assignments_21A, xvar = "YJ_NEG_1", binwidth = .25, xlim = c(-1.5,1.5))
+plot_histogram(df = assignments_21A, xvar = "YJ_0", binwidth = 1)
+plot_histogram(df = assignments_21A, xvar = "YJ_POS_1", binwidth = 1)
+plot_histogram(df = assignments_21A, xvar = "YJ_POS_2", binwidth = 1)
+```
+
+## Plot HOUR_DIFF by assignment type
+
+```{r}
+######## Plot HOUR_DIFF by assignment type: DENSITY ############
+wBin = 5
+
+ggplot(assignments_21A) +
+    
+  # aesthetics
+  geom_histogram(aes(x = HOUR_DIFF, y = wBin*..density..), binwidth = wBin, color = "blue", fill = "blue", alpha = .5) +
+  facet_wrap(~ ASSIGNMENT_TYPE) +
+  
+  xlim(-100,100) +
+      
+  # title and label axes
+  ggtitle(paste("Distribution of HOUR_DIFF")) +
+  xlab("HOUR_DIFF") +
+  ylab("Density")
+    
+  # Font size
+  theme(text = element_text(size = 12),
+        axis.text.x = element_text(size = 12, margin = margin(5,0,20,0)),
+        axis.text.y = element_text(size = 12, margin = margin(0,5,0,20)),
+        plot.title = element_text(size = 16, margin = margin(0,0,20,0), hjust = 0.5)) +
+  theme_classic()
+    
+ggsave(paste0(here(),"/Plots/Descriptive Stats/HOUR_DIFF by ASSIGNMENT_TYPE.jpeg"))
 ```
 
 

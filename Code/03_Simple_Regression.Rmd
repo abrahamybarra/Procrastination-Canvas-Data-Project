@@ -29,14 +29,15 @@ assignments_21A <- read.csv(paste0(here(),"/final_data/F21_Ashley/assignments.cs
 
 ```{r}
 ######## Create scatter plot (x vs y) function ############
-scatter_plot <- function(title, df, xvar, yvar, ylim = c(0,100), model = NULL) {
-  p <- ggplot(df) +
+scatter_plot <- function(title, df, xvar, yvar, xlim = c(0,100), ylim = c(0,100), a = 0, b = 0) {
+  ggplot(df) +
   
     # aesthetics
     geom_point(aes_string(x = xvar, y = yvar)) +
-    geom_abline(intercept = coef(model)[1],
-                slope = coef(model)[2]) +
+    geom_abline(intercept = a,
+                slope = b) +
     
+    xlim(xlim) +
     ylim(ylim) +
     
     # title and label axes
@@ -63,6 +64,7 @@ scatter_plot <- function(title, df, xvar, yvar, ylim = c(0,100), model = NULL) {
 # Mean center predictor variables
 studentSummary_21A <- studentSummary_21A %>%
   mutate(PCT_ON_TIME_C = PCT_ON_TIME - mean(PCT_ON_TIME), .after = PCT_ON_TIME) %>%
+  mutate(PCT_LATE_C = PCT_LATE - mean(PCT_LATE), .after = PCT_LATE) %>%
   mutate(MEAN_HOUR_DIFF_C = MEAN_HOUR_DIFF - mean(MEAN_HOUR_DIFF), .after = MEAN_HOUR_DIFF)
 
 assignments_21A <- assignments_21A %>%
@@ -76,7 +78,9 @@ m.1.Final <- lm(FINAL_EXAM_SCORE ~ PCT_ON_TIME,  data = studentSummary_21A)
 
 m.2.Final <- lm(FINAL_EXAM_SCORE ~ MEAN_HOUR_DIFF, data = studentSummary_21A)
 
-m.3.Final <- lm(SCORE_100 ~ HOUR_DIFF, data = assignments_21A) # rerun as LMM
+m.3.Final <- lmer(SCORE_100 ~ HOUR_DIFF + (1 | ASSIGNMENT_NAME) + (1 | ANON_ID), data = assignments_21A)
+
+m.5.Final <- lm(FINAL_EXAM_SCORE ~ PCT_LATE,  data = studentSummary_21A)
 
 # Analyses with mean centered predictors, for interpretation
 m.1.Final.c <- lm(FINAL_EXAM_SCORE ~ PCT_ON_TIME_C,  data = studentSummary_21A)
@@ -85,8 +89,14 @@ summary(m.1.Final.c)
 m.2.Final.c <- lm(FINAL_EXAM_SCORE ~ MEAN_HOUR_DIFF_C,  data = studentSummary_21A)
 summary(m.2.Final.c)
 
-m.3.Final.c <- lm(SCORE_100 ~ HOUR_DIFF_C, data = assignments_21A)
+m.3.Final.c <- lmer(SCORE_100 ~ HOUR_DIFF_C + (1 | ASSIGNMENT_NAME) + (1 | ANON_ID), data = assignments_21A)
 summary(m.3.Final.c)
+
+m.4.Final.c <- lmer(SCORE_100 ~ HOUR_DIFF_C * ASSIGNMENT_TYPE + (1 | ASSIGNMENT_NAME) + (1 | ANON_ID), data = assignments_21A)
+summary(m.4.Final.c)
+
+m.5.Final.c <- lm(FINAL_EXAM_SCORE ~ PCT_LATE_C,  data = studentSummary_21A)
+summary(m.5.Final.c)
 ```
 
 
@@ -97,9 +107,11 @@ summary(m.3.Final.c)
 
 ######## Scatter plots of key variables vs. overall course grade ############
 scatter_plot(title = "PCT_ON_TIME vs FINAL_EXAM_SCORE", df = studentSummary_21A, xvar = "PCT_ON_TIME", 
-             yvar = "FINAL_EXAM_SCORE", ylim = c(50,100), model = m.1.Final)
+             yvar = "FINAL_EXAM_SCORE", xlim = c(0,1), ylim = c(50,100), a = coef(m.1.Final)[1], b = coef(m.1.Final)[2])
 scatter_plot(title = "MEAN_HOUR_DIFF vs FINAL_EXAM_SCORE", df = studentSummary_21A, xvar = "MEAN_HOUR_DIFF", 
-             yvar = "FINAL_EXAM_SCORE", ylim = c(50,100), model = m.2.Final)
+             yvar = "FINAL_EXAM_SCORE", xlim = c(-50,50), ylim = c(50,100), a = coef(m.2.Final)[1], b = coef(m.2.Final)[2])
 scatter_plot(title = "HOUR_DIFF vs ASSIGNMENT_SCORE", df = assignments_21A, xvar = "HOUR_DIFF", 
-             yvar = "SCORE_100", ylim = c(0,100))
+             yvar = "SCORE_100", xlim = c(-200,200), ylim = c(0,100), a = fixef(m.3.Final)[1], b = fixef(m.3.Final)[2])
+scatter_plot(title = "PCT_LATE vs FINAL_EXAM_SCORE", df = studentSummary_21A, xvar = "PCT_LATE", 
+             yvar = "FINAL_EXAM_SCORE", xlim = c(0,.5), ylim = c(0,100), a = coef(m.5.Final)[1], b = coef(m.5.Final)[2])
 ```

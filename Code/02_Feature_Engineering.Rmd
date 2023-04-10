@@ -14,6 +14,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r cars}
 library(tidyverse)
 library(here)
+library(car)
+library(VGAM)
 ```
 
 ## Read in data
@@ -53,10 +55,22 @@ assignments_21A_submitted <- assignments_21A_submitted %>%
 assignments_21A_submitted <- assignments_21A_submitted %>%
   mutate(HOUR_DIFF = difftime(DUE_DATE, SUBMITTED_AT, units = "hours") %>% as.numeric(), .after = SUBMITTED_AT_TIME)
 
+# Create yeo-johnson transformation of the HOUR_DIFF variable
+assignments_21A_submitted <- assignments_21A_submitted %>%
+  mutate(YJ_NEG_2 = yeo.johnson(HOUR_DIFF, lambda = -2),
+         YJ_NEG_1 = yeo.johnson(HOUR_DIFF, lambda = -1),
+         YJ_0 = yeo.johnson(HOUR_DIFF, lambda = 0),
+         YJ_POS_1 = yeo.johnson(HOUR_DIFF, lambda = 1),
+         YJ_POS_2 = yeo.johnson(HOUR_DIFF, lambda = 2),)
+  
+
 # Add HOUR_DIFF back to the main dataset
 assignments_21A <- assignments_21A %>%
-  left_join(assignments_21A_submitted %>% select(c(UID, HOUR_DIFF)), by = "UID") %>%
-  relocate(HOUR_DIFF, .after = SUBMITTED_AT_TIME)
+  left_join(assignments_21A_submitted %>% 
+              select(c(UID, HOUR_DIFF, YJ_NEG_2, YJ_NEG_1, YJ_0, YJ_POS_1, YJ_POS_2)), 
+            by = "UID") %>%
+  relocate(HOUR_DIFF:YJ_POS_2, .after = SUBMITTED_AT_TIME) %>%
+  mutate(LOG_HOUR_DIFF = log(HOUR_DIFF), .after = HOUR_DIFF)
 ```
 
 ## Create variables for assignment type
@@ -103,7 +117,7 @@ studentSummary_21A <- assignments_21A %>%
             
             NUM_ASSIGNMENTS = n(),
             NUM_MISSING = sum(SUBMITTED_FLAG == "False"),
-            NUM_LATE = sum(HOUR_DIFF > 0, na.rm = TRUE),
+            NUM_LATE = sum(HOUR_DIFF < 0, na.rm = TRUE),
             NUM_NOT_ON_TIME = NUM_MISSING + NUM_LATE,
             NUM_ON_TIME = NUM_ASSIGNMENTS - NUM_NOT_ON_TIME,
             PCT_MISSING = NUM_MISSING / NUM_ASSIGNMENTS,
@@ -113,6 +127,15 @@ studentSummary_21A <- assignments_21A %>%
             
             MEAN_HOUR_DIFF = mean(HOUR_DIFF, na.rm = TRUE))
 ```
+
+# Join select summary stats back into assignment dataset
+
+```{r}
+assignments_21A <- assignments_21A %>%
+  inner_join(studentSummary_21A %>% select(ANON_ID, FINAL_EXAM_SCORE), by = "ANON_ID") %>%
+  relocate(FINAL_EXAM_SCORE, .after = OVERALL_COURSE_GRADE)
+```
+
 
 # Validate with data pulled directly from canvas
 
