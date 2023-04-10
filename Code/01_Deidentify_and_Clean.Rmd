@@ -46,10 +46,12 @@ assignments <- read.csv(paste0(here(),"/raw_data/psyc_students_report_split_v2.c
 # Dataset with student ID's
 sid_key <- read.csv(paste0(here(),"/raw_data/sid_key_v2.csv"), header = TRUE)
 
-# # Additional Datasets (F21 only)
-# studentSummary_21 <- read.csv(paste0(here(),"/raw_data/F21/studentSummary.csv"), header = TRUE) %>%
-#   # join with section label
-#   left_join(f21_section, by = c('SIS.Id')) # N = 181?!
+# Additional Canvas Datasets (F21 only)
+# # Recover overall course grades for Ashley section
+# studentSummary_21A <- read.csv(paste0(here(),"/raw_data/F21/studentSummary.csv"), header = TRUE) %>%
+#   select(c(STUDENT_ID = SIS.Id, Overall.course.grade)) %>%
+#   inner_join(sid_key, by = "STUDENT_ID") %>% 
+#   select(-STUDENT_ID)
 # late_21 <- read.csv(paste0(here(),"/raw_data/F21/lateAssignments.csv"), header = TRUE)
 # missing_21 <- read.csv(paste0(here(),"/raw_data/F21/missingAssignments.csv"), header = TRUE)
 # grades_21 <- read.csv(paste0(here(),"/raw_data/F21/gradebook.csv"), header = TRUE) # N = 349
@@ -66,7 +68,7 @@ assignments <- read.csv(paste0(here(),"/raw_data/psyc_students_report_split_v2.c
 
 # Keep only relevant columns
 assignments <- assignments %>%
-  select(ANON_ID, CURRENT_SCORE, ASSIGNMENT_ID, ASSIGNMENT_NAME, SUBMITTED_FLAG, SCORE, POINTS_POSSIBLE,
+  select(ANON_ID, OVERALL_COURSE_GRADE = CURRENT_SCORE, ASSIGNMENT_ID, ASSIGNMENT_NAME, SUBMITTED_FLAG, SCORE, POINTS_POSSIBLE,
          DUE_DATE, DUE_DATE_DATE, DUE_DATE_TIME, SUBMITTED_AT, SUBMITTED_AT_DATE,
          SUBMITTED_AT_TIME, ASSIGNMENT_OPEN, ASSIGNMENT_OPEN_DATE, ASSIGNMENT_OPEN_TIME, ASSIGNMENT_CLOSE,
          ASSIGNMENT_CLOSE_DATE, ASSIGNMENT_CLOSE_TIME, LAST_ACTIVITY_AT, LAST_ACTIVITY_AT_DATE, LAST_ACTIVITY_AT_TIME,
@@ -158,11 +160,6 @@ assignment_list_21
 # Clean up time values (remove decimals)
 assignments_21 <- assignments_21 %>%
   mutate(across(c(DUE_DATE, DUE_DATE_TIME, SUBMITTED_AT, SUBMITTED_AT_TIME), ~ str_remove(., "\\..*")))
-
-# Check that all values in SUBMITTED_AT are either 1) empty, or 2) conform to the convention "yyyy-mm-dd hh-mm-ss"
-assignments_21_filtered <- assignments_21 %>%
-  filter(!str_detect(SUBMITTED_AT, "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$"))
-unique(assignments_21_filtered$SUBMITTED_AT)
 ```
 
 ## 6) Deidentify data pulled directly from Canvas (F21)

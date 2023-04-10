@@ -27,7 +27,7 @@ library(here)
 assignments_21A <- read.csv(paste0(here(),"/clean_data/F21_Ashley/assignments.csv"), header = TRUE, numerals = "no.loss")
 ```
 
-## Create new variable for time difference between submission time and due date (CURRENTLY BUGGED)
+## Create new variable for time difference between submission time and due date
 
 ```{r}
 # Read data
@@ -49,9 +49,9 @@ assignments_21A_submitted <- assignments_21A_submitted %>%
   mutate(DUE_DATE = as.POSIXct(DUE_DATE, format = "%Y-%m-%d %H:%M:%S", tz = "GMT"),
          SUBMITTED_AT = as.POSIXct(SUBMITTED_AT, format = "%Y-%m-%d %H:%M:%S", tz = "GMT"))
 
-# Compute time difference in hours and store result in new column. Negative means early, positive means late
+# Compute time difference in hours and store result in new column. Positive means early, negative means late
 assignments_21A_submitted <- assignments_21A_submitted %>%
-  mutate(HOUR_DIFF = difftime(SUBMITTED_AT, DUE_DATE, units = "hours") %>% as.numeric(), .after = SUBMITTED_AT_TIME)
+  mutate(HOUR_DIFF = difftime(DUE_DATE, SUBMITTED_AT, units = "hours") %>% as.numeric(), .after = SUBMITTED_AT_TIME)
 
 # Add HOUR_DIFF back to the main dataset
 assignments_21A <- assignments_21A %>%
@@ -79,7 +79,7 @@ assignments_21A <- assignments_21A %>%
     .after = ASSIGNMENT_NAME)
 ```
 
-## Create new variables for % missing, late, on time, etc, as well as overall scores for each assignment type
+## Create student df w/ variables for % missing, late, on time, etc, as well as overall scores for each assignment type
 
 ```{r}
 ######## Create variable for % of all assignments submitted late, missing, etc. ############
@@ -87,10 +87,11 @@ assignments_21A <- assignments_21A %>%
 assignments_21A <- assignments_21A %>%
   mutate(SCORE_100 = SCORE / POINTS_POSSIBLE * 100, .after = POINTS_POSSIBLE)
 
-# Obtain final exam scores, etc. for each student
+# Obtain overall score for each assignment type for each student, as well as missing/late stats
 studentSummary_21A <- assignments_21A %>%
   group_by(ANON_ID) %>%
   summarise(SECTION = unique(Section.Id),
+            OVERALL_COURSE_GRADE = unique(OVERALL_COURSE_GRADE),
             
             SHORT_PAPER_SCORE = sum(if_else(ASSIGNMENT_TYPE == "Short Paper", SCORE, NA), na.rm = TRUE) / sum(if_else(ASSIGNMENT_TYPE == "Short Paper", POINTS_POSSIBLE, NA), na.rm = TRUE) * 100,
             FINAL_EXAM_SCORE = sum(if_else(ASSIGNMENT_TYPE == "Final Exam", SCORE, NA), na.rm = TRUE) / sum(if_else(ASSIGNMENT_TYPE == "Final Exam", POINTS_POSSIBLE, NA), na.rm = TRUE) * 100,
@@ -99,8 +100,6 @@ studentSummary_21A <- assignments_21A %>%
             PRE_LECTURE_ASSIGNMENT_SCORE = sum(if_else(ASSIGNMENT_TYPE == "Pre-Lecture Assignment", SCORE, NA), na.rm = TRUE) / sum(if_else(ASSIGNMENT_TYPE == "Pre-Lecture Assignment", POINTS_POSSIBLE, NA), na.rm = TRUE) * 100,
             STUDY_HABITS_CHALLENGE_SCORE = sum(if_else(ASSIGNMENT_TYPE == "Study Habits Challenge", SCORE, NA), na.rm = TRUE) / sum(if_else(ASSIGNMENT_TYPE == "Final Exam", POINTS_POSSIBLE, NA), na.rm = TRUE) * 100,
             READING_QUIZ_SCORE = sum(if_else(ASSIGNMENT_TYPE == "Reading Quiz", SCORE, NA), na.rm = TRUE) / sum(if_else(ASSIGNMENT_TYPE == "Reading Quiz", POINTS_POSSIBLE, NA), na.rm = TRUE) * 100,
-            
-            OVERALL_COURSE_GRADE = (1/7) * SHORT_PAPER_SCORE + (1/7) * FINAL_EXAM_SCORE + (1/7) * MIDTERM_EXAM_SCORE + (1/7) * (POST_LECTURE_QUIZ_SCORE) + (1/7) * PRE_LECTURE_ASSIGNMENT_SCORE + (1/7) * STUDY_HABITS_CHALLENGE_SCORE + (1/7) * READING_QUIZ_SCORE,
             
             NUM_ASSIGNMENTS = n(),
             NUM_MISSING = sum(SUBMITTED_FLAG == "False"),
@@ -146,8 +145,8 @@ studentSummary_21A <- assignments_21A %>%
 
 ```{r}
 ######## Write cleaned F21 (Ashley) data to csv file ################
-write.csv(studentSummary_21A,paste0(here(),"/clean_data/F21_Ashley/studentSummary.csv"), row.names = FALSE)
-write.csv(assignments_21A,paste0(here(),"/clean_data/F21_Ashley/assignments.csv"), row.names = FALSE)
+write.csv(studentSummary_21A,paste0(here(),"/final_data/F21_Ashley/studentSummary.csv"), row.names = FALSE)
+write.csv(assignments_21A,paste0(here(),"/final_data/F21_Ashley/assignments.csv"), row.names = FALSE)
 ```
 
 

@@ -21,11 +21,8 @@ library(afex)
 
 ```{r}
 ######## Read in F21 (Ashley) Data ############
-studentSummary_21A <- read.csv(paste0(here(),"/clean_data/F21_Ashley/studentSummary.csv"), header = TRUE)
-assignments_21A <- read.csv(paste0(here(),"/clean_data/F21_Ashley/assignments.csv"), header = TRUE, numerals = "no.loss")
-# late <- read.csv(paste0(here(),"/clean_data/F21_Ashley/lateAssignments.csv"), header = TRUE)
-# missing <- read.csv(paste0(here(),"/clean_data/F21_Ashley/missingAssignments.csv"), header = TRUE)
-# grades <- read.csv(paste0(here(),"/clean_data/F21_Ashley/gradebook.csv"), header = TRUE)
+studentSummary_21A <- read.csv(paste0(here(),"/final_data/F21_Ashley/studentSummary.csv"), header = TRUE)
+assignments_21A <- read.csv(paste0(here(),"/final_data/F21_Ashley/assignments.csv"), header = TRUE, numerals = "no.loss")
 ```
 
 ## Plot functions
@@ -58,43 +55,6 @@ scatter_plot <- function(title, df, xvar, yvar, ylim = c(0,100), model = NULL) {
 }
 ```
 
-## Analyses: Overall course grade
-
-```{r}
-# ######## Mean center predictor variables ############
-# studentSummary_21A <- studentSummary_21A %>%
-#   mutate(across(c(Assignment.on.time.percent, pctOnTime, Page.Views, Participations), ~ .x - mean(.x), .names = "{.col}.c" ))
-# 
-# set_sum_contrasts()
-# 
-# ######## Create models with Overall.course.grade as DV ############
-# # Without mean centered predictors, for plotting only
-# m.1.Ovr <- lm(Overall.course.grade ~ pctOnTime,  data = studentSummary_21A)
-# 
-# m.1b.Ovr <- lm(Overall.course.grade ~ Assignment.on.time.percent,  data = studentSummary_21A)
-# 
-# m.2.Ovr <- lm(Overall.course.grade ~ Page.Views,  data = studentSummary_21A)
-# 
-# m.3.Ovr <- lm(Overall.course.grade ~ Participations,  data = studentSummary_21A)
-# 
-# 
-# # With mean centered predictors, for interpretation
-# m.1.Ovr.c <- lm(Overall.course.grade ~ pctOnTime.c,  data = studentSummary_21A)
-# summary(m.1.Ovr.c)
-# 
-# m.1b.Ovr.c <- lm(Overall.course.grade ~ Assignment.on.time.percent,  data = studentSummary_21A)
-# # summary(m.1b.Ovr.c)
-# 
-# m.2.Ovr.c <- lm(Overall.course.grade ~ Page.Views.c,  data = studentSummary_21A)
-# summary(m.2.Ovr.c)
-# 
-# m.3.Ovr.c <- lm(Overall.course.grade ~ Participations.c,  data = studentSummary_21A)
-# summary(m.3.Ovr.c)
-# 
-# m.4.Ovr.c <- lm(Overall.course.grade ~ pctOnTime.c * Page.Views.c * Participations.c,  data = studentSummary_21A)
-# summary(m.4.Ovr.c)
-```
-
 ## Analyses: Final exam score
 
 ```{r}
@@ -111,21 +71,14 @@ assignments_21A <- assignments_21A %>%
 
 set_sum_contrasts()
 
-# # Without mean centered predictors, for plotting only
+# Analyses without mean centered predictors, for plotting only
 m.1.Final <- lm(FINAL_EXAM_SCORE ~ PCT_ON_TIME,  data = studentSummary_21A)
 
 m.2.Final <- lm(FINAL_EXAM_SCORE ~ MEAN_HOUR_DIFF, data = studentSummary_21A)
 
-m.3.Final <- lm(SCORE_100 ~ HOUR_DIFF, data = assignments_21A)
-# 
-# m.1b.Final <- lm(Final.Exam.Score ~ Assignment.on.time.percent,  data = studentSummary_21A)
-# 
-# m.2.Final <- lm(Final.Exam.Score ~ Page.Views,  data = studentSummary_21A)
-# 
-# m.3.Final <- lm(Final.Exam.Score ~ Participations,  data = studentSummary_21A)
-# 
-# 
-# # With mean centered predictors, for interpretation
+m.3.Final <- lm(SCORE_100 ~ HOUR_DIFF, data = assignments_21A) # rerun as LMM
+
+# Analyses with mean centered predictors, for interpretation
 m.1.Final.c <- lm(FINAL_EXAM_SCORE ~ PCT_ON_TIME_C,  data = studentSummary_21A)
 summary(m.1.Final.c)
 
@@ -134,49 +87,13 @@ summary(m.2.Final.c)
 
 m.3.Final.c <- lm(SCORE_100 ~ HOUR_DIFF_C, data = assignments_21A)
 summary(m.3.Final.c)
-# 
-# m.1b.Final.c <- lm(Final.Exam.Score ~ Assignment.on.time.percent,  data = studentSummary_21A)
-# # summary(m.1b.Final.c)
-# 
-# m.2.Final.c <- lm(Final.Exam.Score ~ Page.Views.c,  data = studentSummary_21A)
-# summary(m.2.Final.c)
-# 
-# m.3.Final.c <- lm(Final.Exam.Score ~ Participations.c,  data = studentSummary_21A)
-# summary(m.3.Final.c)
-# 
-# m.4.Final.c <- lm(Final.Exam.Score ~ pctOnTime.c * Page.Views.c * Participations.c,  data = studentSummary_21A)
-# summary(m.4.Final.c)
 ```
 
-
-## Post-analysis plots: Overall course grade
-
-```{r}
-######## Add model predictions to dataset ############
-# studentSummary_21A <- studentSummary_21A %>%
-#   mutate(m.1.Ovr.pred = predict(m.1.Ovr),
-#          m.2.Ovr.pred = predict(m.2.Ovr),
-#          m.3.Ovr.pred = predict(m.3.Ovr))
-
-######## Scatter plots of key variables vs. overall course grade ############
-# scatter_plot(title = "REG On time pct (new) vs overall grade", xvar = "PCT_ON_TIME", 
-#              yvar = "Overall.course.grade", ylim = c(50,100), model = m.1.Ovr)
-# scatter_plot(title = "REG On time pct (old) vs overall grade", xvar = "Assignment.on.time.percent", 
-#              yvar = "Overall.course.grade", ylim = c(50,100), model = m.1b.Ovr)
-# scatter_plot(title = "REG Page view vs overall grade", xvar = "Page.Views", 
-#              yvar = "Overall.course.grade", ylim = c(50,100), model = m.2.Ovr)
-# scatter_plot(title = "REG Participations vs overall grade", xvar = "Participations", 
-#              yvar = "Overall.course.grade", ylim = c(50,100), model = m.3.Ovr)
-```
 
 ## Post-analysis plots: Final exam score
 
 ```{r}
 ######## Add model predictions to dataset ############
-# studentSummary_21A <- studentSummary_21A %>%
-#   mutate(m.1.Final.pred = predict(m.1.Final),
-#          m.2.Final.pred = predict(m.2.Final),
-#          m.3.Final.pred = predict(m.3.Final))
 
 ######## Scatter plots of key variables vs. overall course grade ############
 scatter_plot(title = "PCT_ON_TIME vs FINAL_EXAM_SCORE", df = studentSummary_21A, xvar = "PCT_ON_TIME", 
@@ -185,10 +102,4 @@ scatter_plot(title = "MEAN_HOUR_DIFF vs FINAL_EXAM_SCORE", df = studentSummary_2
              yvar = "FINAL_EXAM_SCORE", ylim = c(50,100), model = m.2.Final)
 scatter_plot(title = "HOUR_DIFF vs ASSIGNMENT_SCORE", df = assignments_21A, xvar = "HOUR_DIFF", 
              yvar = "SCORE_100", ylim = c(0,100))
-# scatter_plot(title = "REG On time pct (old) vs final exam grade", xvar = "Assignment.on.time.percent",
-#              yvar = "Final.Exam.Score", ylim = c(50,100), model = m.1b.Final)
-# scatter_plot(title = "REG Page view vs final exam grade", xvar = "Page.Views",
-#              yvar = "Final.Exam.Score", ylim = c(50,100), model = m.2.Final)
-# scatter_plot(title = "REG Participations vs final exam grade", xvar = "Participations", 
-#              yvar = "Final.Exam.Score", ylim = c(50,100), model = m.3.Final)
 ```
