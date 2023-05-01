@@ -53,8 +53,15 @@ assignments_21A_submitted <- assignments_21A_submitted %>%
 
 # Compute time difference in hours and store result in new column. Positive means early, negative means late
 assignments_21A_submitted <- assignments_21A_submitted %>%
-  mutate(HOUR_DIFF = difftime(DUE_DATE, SUBMITTED_AT, units = "hours") %>% as.numeric(), .after = SUBMITTED_AT_TIME)
-
+  mutate(HOUR_DIFF = difftime(DUE_DATE, SUBMITTED_AT, units = "hours") %>% as.numeric(),
+         .after = SUBMITTED_AT_TIME) %>%
+  group_by(ASSIGNMENT_NAME) %>%
+  mutate(HOUR_DIFF_NORM = HOUR_DIFF/max(HOUR_DIFF),
+         HOUR_DIFF_Z = (HOUR_DIFF - mean(HOUR_DIFF))/sd(HOUR_DIFF),
+         LOG_HOUR_DIFF = log(HOUR_DIFF),
+         .after = HOUR_DIFF) %>%
+  ungroup()
+  
 # Create yeo-johnson transformation of the HOUR_DIFF variable
 assignments_21A_submitted <- assignments_21A_submitted %>%
   mutate(YJ_NEG_2 = yeo.johnson(HOUR_DIFF, lambda = -2),
@@ -67,19 +74,20 @@ assignments_21A_submitted <- assignments_21A_submitted %>%
 # Add HOUR_DIFF back to the main dataset
 assignments_21A <- assignments_21A %>%
   left_join(assignments_21A_submitted %>% 
-              select(c(UID, HOUR_DIFF, YJ_NEG_2, YJ_NEG_1, YJ_0, YJ_POS_1, YJ_POS_2)), 
+              select(c(UID, HOUR_DIFF, HOUR_DIFF_NORM, HOUR_DIFF_Z, LOG_HOUR_DIFF, YJ_NEG_2, YJ_NEG_1, YJ_0, YJ_POS_1, YJ_POS_2)), 
             by = "UID") %>%
-  relocate(HOUR_DIFF:YJ_POS_2, .after = SUBMITTED_AT_TIME) %>%
-  mutate(LOG_HOUR_DIFF = log(HOUR_DIFF), .after = HOUR_DIFF)
+  relocate(HOUR_DIFF:YJ_POS_2, .after = SUBMITTED_AT_TIME)
 ```
 
-## Create variables for assignment type
+## Create additional variables
 
 ```{r}
-######## Create variables for assignment type ############
+######## Create additional variables ############
+
 # Print all assignment names
 unique(assignments_21A$ASSIGNMENT_NAME)
 
+# Create variables for assignment type
 assignments_21A <- assignments_21A %>%
   mutate(ASSIGNMENT_TYPE = case_when(
     str_detect(ASSIGNMENT_NAME, regex('Short Paper', ignore_case = TRUE)) ~ "Short Paper",
@@ -91,15 +99,25 @@ assignments_21A <- assignments_21A %>%
     str_detect(ASSIGNMENT_NAME, regex('Reading Quiz', ignore_case = TRUE)) ~ "Reading Quiz",
     .default = NA),
     .after = ASSIGNMENT_NAME)
+
+# Create variable for assignment score out of 100
+assignments_21A <- assignments_21A %>%
+  mutate(SCORE_100 = SCORE / POINTS_POSSIBLE * 100, .after = POINTS_POSSIBLE)
+
+# Create PI = {1 if after 75% of students; 0 otherwise} 
+assignments_21A <- assignments_21A %>% 
+  group_by(ASSIGNMENT_NAME) %>%
+  mutate(CUTOFF_75 = format(quantile(as.POSIXct(SUBMITTED_AT, format = "%Y-%m-%d %H:%M:%S"), 0.75, na.rm = TRUE), "%Y-%m-%d %H:%M:%S"),
+         PI = as.integer(as.POSIXct(SUBMITTED_AT, format = "%Y-%m-%d %H:%M:%S") >= as.POSIXct(CUTOFF_75, format = "%Y-%m-%d %H:%M:%S")),
+         .after = SUBMITTED_AT_TIME) %>%
+  ungroup() %>%
+  replace_na(list(PI = 1))
 ```
 
 ## Create student df w/ variables for % missing, late, on time, etc, as well as overall scores for each assignment type
 
 ```{r}
 ######## Create variable for % of all assignments submitted late, missing, etc. ############
-# Create variable for score out of 100
-assignments_21A <- assignments_21A %>%
-  mutate(SCORE_100 = SCORE / POINTS_POSSIBLE * 100, .after = POINTS_POSSIBLE)
 
 # Obtain overall score for each assignment type for each student, as well as missing/late stats
 studentSummary_21A <- assignments_21A %>%
@@ -125,7 +143,11 @@ studentSummary_21A <- assignments_21A %>%
             PCT_NOT_ON_TIME = NUM_NOT_ON_TIME / NUM_ASSIGNMENTS,
             PCT_ON_TIME = NUM_ON_TIME / NUM_ASSIGNMENTS,
             
-            MEAN_HOUR_DIFF = mean(HOUR_DIFF, na.rm = TRUE))
+            MEAN_HOUR_DIFF = mean(HOUR_DIFF, na.rm = TRUE),
+            MEAN_HOUR_DIFF_Z = mean(HOUR_DIFF_Z, na.rm = TRUE),
+            
+            MEAN_PI = mean(PI, na.rm = TRUE),
+            LOG_MEAN_PI = ifelse(is.na(MEAN_PI), NA, log(MEAN_PI + .001)))
 ```
 
 # Join select summary stats back into assignment dataset

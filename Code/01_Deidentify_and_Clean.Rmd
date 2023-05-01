@@ -20,7 +20,7 @@ library(here)
 
 ```{r}
 # Note: No longer necessary (OIT fixed)
-get_section=function(path, section){
+get_section = function(path, section) {
   section = read.csv(path) %>%
     filter(!is.na(SIS.User.ID)) %>%
     filter(Student != "Student, Test") %>%

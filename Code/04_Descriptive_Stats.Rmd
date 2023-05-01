@@ -40,12 +40,13 @@ plot_histogram <- function(df, xvar, binwidth, xlim = c(-10,10)) {
     
     xlim(xlim) +
     
-    # Font size
-   theme(text = element_text(size = 12),
-         axis.text.x = element_text(size = 12, margin = margin(5,0,20,0)),
-         axis.text.y = element_text(size = 12, margin = margin(0,5,0,20)),
-         plot.title = element_text(size = 16, margin = margin(0,0,20,0), hjust = 0.5)) +
-    theme_classic()
+    # Font size 
+    theme_classic() +
+    theme(plot.title = element_text(size = 18, margin = margin(0,0,20,0)),
+          axis.title.x = element_text(size = 18, margin = margin(5,0,10,0)),
+          axis.title.y = element_text(size = 18, margin = margin(0,5,0,10)),
+          axis.text.x = element_text(size = 16, margin = margin(5,0,10,0)),
+          axis.text.y = element_text(size = 16, margin = margin(0,5,0,10))) 
     
   ggsave(paste0(here(),"/Plots/Descriptive Stats/Distribution of ",xvar,".jpeg"))
 }
@@ -60,7 +61,12 @@ plot_histogram(df = studentSummary_21A, xvar = "FINAL_EXAM_SCORE", binwidth = 5,
 plot_histogram(df = studentSummary_21A, xvar = "PCT_ON_TIME", binwidth = .05, xlim = c(0,1))
 plot_histogram(df = studentSummary_21A, xvar = "PCT_LATE", binwidth = .05, xlim = c(0,.5))
 plot_histogram(df = studentSummary_21A, xvar = "MEAN_HOUR_DIFF", binwidth = 5, xlim = c(-100,100))
+plot_histogram(df = studentSummary_21A, xvar = "MEAN_HOUR_DIFF_Z", binwidth = .25, xlim = c(-2,2))
+plot_histogram(df = studentSummary_21A, xvar = "MEAN_PI", binwidth = .1, xlim = c(0,1))
+plot_histogram(df = studentSummary_21A, xvar = "LOG_MEAN_PI", binwidth = .5, xlim = c(-5,1))
 plot_histogram(df = assignments_21A, xvar = "HOUR_DIFF", binwidth = 5, xlim = c(-200,200))
+plot_histogram(df = assignments_21A, xvar = "HOUR_DIFF_NORM", binwidth = .1, xlim = c(-1,1))
+plot_histogram(df = assignments_21A, xvar = "HOUR_DIFF_Z", binwidth = .25, xlim = c(-3,3))
 plot_histogram(df = assignments_21A, xvar = "LOG_HOUR_DIFF", binwidth = .25, xlim = c(2,6))
 plot_histogram(df = assignments_21A, xvar = "YJ_NEG_2", binwidth = .25, xlim = c(-1.5,1.5))
 plot_histogram(df = assignments_21A, xvar = "YJ_NEG_1", binwidth = .25, xlim = c(-1.5,1.5))
@@ -69,33 +75,81 @@ plot_histogram(df = assignments_21A, xvar = "YJ_POS_1", binwidth = 1)
 plot_histogram(df = assignments_21A, xvar = "YJ_POS_2", binwidth = 1)
 ```
 
-## Plot HOUR_DIFF by assignment type
+## Function: plot variables by assignment type
 
 ```{r}
 ######## Plot HOUR_DIFF by assignment type: DENSITY ############
-wBin = 5
+plot_wrap <- function(df, xvar, binwidth = 5, xlim = c(-1,1)) {
 
-ggplot(assignments_21A) +
-    
-  # aesthetics
-  geom_histogram(aes(x = HOUR_DIFF, y = wBin*..density..), binwidth = wBin, color = "blue", fill = "blue", alpha = .5) +
-  facet_wrap(~ ASSIGNMENT_TYPE) +
-  
-  xlim(-100,100) +
+  ggplot(df) +
       
-  # title and label axes
-  ggtitle(paste("Distribution of HOUR_DIFF")) +
-  xlab("HOUR_DIFF") +
-  ylab("Density")
+    # aesthetics
+    geom_histogram(aes(x = !!sym(xvar), y = binwidth*..density..), binwidth = binwidth, color = "blue", fill = "blue", alpha = .5) +
+    facet_wrap(~ ASSIGNMENT_TYPE) +
+    theme_classic() +
     
-  # Font size
-  theme(text = element_text(size = 12),
-        axis.text.x = element_text(size = 12, margin = margin(5,0,20,0)),
-        axis.text.y = element_text(size = 12, margin = margin(0,5,0,20)),
-        plot.title = element_text(size = 16, margin = margin(0,0,20,0), hjust = 0.5)) +
-  theme_classic()
-    
-ggsave(paste0(here(),"/Plots/Descriptive Stats/HOUR_DIFF by ASSIGNMENT_TYPE.jpeg"))
+    xlim(xlim) +
+        
+    # title and label axes
+    ggtitle(paste("Distribution of",xvar)) +
+    xlab(xvar) +
+    ylab("Density")
+      
+    # Font size
+    theme(text = element_text(size = 12),
+          axis.text.x = element_text(size = 12, margin = margin(5,0,20,0)),
+          axis.text.y = element_text(size = 12, margin = margin(0,5,0,20)),
+          plot.title = element_text(size = 16, margin = margin(0,0,20,0), hjust = 0.5)) +
+    theme_classic()
+      
+  ggsave(paste0(here(),"/Plots/Descriptive Stats/", xvar, " by ASSIGNMENT_TYPE.jpeg"))
+}
+```
+
+## Plot wraps
+
+```{r}
+plot_wrap(df = assignments_21A, xvar = "HOUR_DIFF", binwidth = 5, xlim = c(-100,100))
+plot_wrap(df = assignments_21A, xvar = "HOUR_DIFF_NORM", binwidth = .1, xlim = c(-1,1))
+plot_wrap(df = assignments_21A, xvar = "HOUR_DIFF_Z", binwidth = .25, xlim = c(-3,3))
+```
+
+## Boxplot function
+
+```{r}
+######## Plot HOUR_DIFF by assignment type: DENSITY ############
+plot_box <- function(df, xvar, yvar) {
+
+  ggplot(df, aes_string(x = xvar, y = yvar)) +
+      
+    # aesthetics
+    geom_boxplot(alpha = .2, outlier.shape = NA) +
+    stat_boxplot(coef = 5) + 
+    theme_classic() +
+        
+    # title and label axes
+    ggtitle(paste("Boxplot of",xvar)) +
+    xlab(xvar) +
+    ylab(yvar) +
+      
+    # Font size
+    theme(text = element_text(size = 12),
+          axis.text.x = element_text(size = 12, margin = margin(5,0,20,0)),
+          axis.text.y = element_text(size = 12, margin = margin(0,5,0,20)),
+          plot.title = element_text(size = 16, margin = margin(0,0,20,0), hjust = 0.5)) +
+    theme_classic()
+      
+  ggsave(paste0(here(),"/Plots/Descriptive Stats/Boxplot of ", xvar, ".jpeg"))
+}
+```
+
+## Plot boxplots
+
+```{r}
+assignments_21A <- assignments_21A %>%
+  mutate(PI_FCT = as_factor(PI), .after = PI)
+
+plot_box(df = assignments_21A, xvar = "PI_FCT", yvar = "SCORE_100")
 ```
 
 

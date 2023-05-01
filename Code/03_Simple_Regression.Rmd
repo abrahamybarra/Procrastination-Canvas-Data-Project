@@ -41,16 +41,17 @@ scatter_plot <- function(title, df, xvar, yvar, xlim = c(0,100), ylim = c(0,100)
     ylim(ylim) +
     
     # title and label axes
-    ggtitle(paste(xvar,"vs",yvar)) +
+    ggtitle(title) +
     xlab(xvar) + 
     ylab(yvar) +
     
     # Font size 
-    theme(text = element_text(size = 12),
-          axis.text.x = element_text(size = 12, margin = margin(5,0,20,0)),
-          axis.text.y = element_text(size = 12, margin = margin(0,5,0,20)),
-          plot.title = element_text(size = 16, margin = margin(0,0,20,0), hjust = 0.5)) +
-    theme_classic()
+    theme_classic() +
+    theme(plot.title = element_text(size = 18, margin = margin(0,0,20,0)),
+          axis.title.x = element_text(size = 18, margin = margin(5,0,10,0)),
+          axis.title.y = element_text(size = 18, margin = margin(0,5,0,10)),
+          axis.text.x = element_text(size = 16, margin = margin(5,0,10,0)),
+          axis.text.y = element_text(size = 16, margin = margin(0,5,0,10))) 
   
   ggsave(paste0(here(),"/Plots/Simple Regression/",title,".jpeg"))
 }
@@ -65,38 +66,55 @@ scatter_plot <- function(title, df, xvar, yvar, xlim = c(0,100), ylim = c(0,100)
 studentSummary_21A <- studentSummary_21A %>%
   mutate(PCT_ON_TIME_C = PCT_ON_TIME - mean(PCT_ON_TIME), .after = PCT_ON_TIME) %>%
   mutate(PCT_LATE_C = PCT_LATE - mean(PCT_LATE), .after = PCT_LATE) %>%
-  mutate(MEAN_HOUR_DIFF_C = MEAN_HOUR_DIFF - mean(MEAN_HOUR_DIFF), .after = MEAN_HOUR_DIFF)
+  mutate(MEAN_HOUR_DIFF_C = MEAN_HOUR_DIFF - mean(MEAN_HOUR_DIFF), .after = MEAN_HOUR_DIFF) %>%
+  mutate(MEAN_PI_C = MEAN_PI - mean(MEAN_PI), .after = MEAN_PI) %>%
+  mutate(LOG_MEAN_PI_C = LOG_MEAN_PI - mean(LOG_MEAN_PI), .after = MEAN_PI_C)
 
 assignments_21A <- assignments_21A %>%
-  filter(SUBMITTED_FLAG == "True") %>%
+  # filter(SUBMITTED_FLAG == "True") %>%
   mutate(HOUR_DIFF_C = HOUR_DIFF - mean(HOUR_DIFF, na.rm = TRUE), .after = HOUR_DIFF)
 
 set_sum_contrasts()
 
 # Analyses without mean centered predictors, for plotting only
 m.1.Final <- lm(FINAL_EXAM_SCORE ~ PCT_ON_TIME,  data = studentSummary_21A)
-
-m.2.Final <- lm(FINAL_EXAM_SCORE ~ MEAN_HOUR_DIFF, data = studentSummary_21A)
-
+m.2.Final <- lm(FINAL_EXAM_SCORE ~ MEAN_HOUR_DIFF_Z, data = studentSummary_21A)
 m.3.Final <- lmer(SCORE_100 ~ HOUR_DIFF + (1 | ASSIGNMENT_NAME) + (1 | ANON_ID), data = assignments_21A)
-
+m.4.Final <- lmer(SCORE_100 ~ HOUR_DIFF_Z + (1 | ASSIGNMENT_NAME) + (1 | ANON_ID), data = assignments_21A)
 m.5.Final <- lm(FINAL_EXAM_SCORE ~ PCT_LATE,  data = studentSummary_21A)
+m.6.Final <- lm(FINAL_EXAM_SCORE ~ LOG_MEAN_PI,  data = studentSummary_21A)
+m.7.Final <- lm(OVERALL_COURSE_GRADE ~ MEAN_HOUR_DIFF_Z, data = studentSummary_21A)
+m.8.Final <- lm(OVERALL_COURSE_GRADE ~ LOG_MEAN_PI,  data = studentSummary_21A)
+m.9.Final <- lm(LOG_MEAN_PI ~ MEAN_HOUR_DIFF_Z,  data = studentSummary_21A)
+
 
 # Analyses with mean centered predictors, for interpretation
 m.1.Final.c <- lm(FINAL_EXAM_SCORE ~ PCT_ON_TIME_C,  data = studentSummary_21A)
 summary(m.1.Final.c)
 
-m.2.Final.c <- lm(FINAL_EXAM_SCORE ~ MEAN_HOUR_DIFF_C,  data = studentSummary_21A)
+m.2.Final.c <- lm(FINAL_EXAM_SCORE ~ MEAN_HOUR_DIFF_Z,  data = studentSummary_21A)
 summary(m.2.Final.c)
 
 m.3.Final.c <- lmer(SCORE_100 ~ HOUR_DIFF_C + (1 | ASSIGNMENT_NAME) + (1 | ANON_ID), data = assignments_21A)
 summary(m.3.Final.c)
 
-m.4.Final.c <- lmer(SCORE_100 ~ HOUR_DIFF_C * ASSIGNMENT_TYPE + (1 | ASSIGNMENT_NAME) + (1 | ANON_ID), data = assignments_21A)
+m.4.Final.c <- lmer(SCORE_100 ~ HOUR_DIFF_Z + (1 | ASSIGNMENT_NAME) + (1 | ANON_ID), data = assignments_21A)
 summary(m.4.Final.c)
 
 m.5.Final.c <- lm(FINAL_EXAM_SCORE ~ PCT_LATE_C,  data = studentSummary_21A)
 summary(m.5.Final.c)
+
+m.6.Final.c <- lm(FINAL_EXAM_SCORE ~ LOG_MEAN_PI_C,  data = studentSummary_21A)
+summary(m.6.Final.c)
+
+m.7.Final.c <- lm(OVERALL_COURSE_GRADE ~ MEAN_HOUR_DIFF_Z,  data = studentSummary_21A)
+summary(m.7.Final.c)
+
+m.8.Final.c <- lm(OVERALL_COURSE_GRADE ~ LOG_MEAN_PI,  data = studentSummary_21A)
+summary(m.8.Final.c)
+
+m.9.Final.c <- lm(LOG_MEAN_PI ~ MEAN_HOUR_DIFF_Z,  data = studentSummary_21A)
+summary(m.9.Final.c)
 ```
 
 
@@ -108,10 +126,20 @@ summary(m.5.Final.c)
 ######## Scatter plots of key variables vs. overall course grade ############
 scatter_plot(title = "PCT_ON_TIME vs FINAL_EXAM_SCORE", df = studentSummary_21A, xvar = "PCT_ON_TIME", 
              yvar = "FINAL_EXAM_SCORE", xlim = c(0,1), ylim = c(50,100), a = coef(m.1.Final)[1], b = coef(m.1.Final)[2])
-scatter_plot(title = "MEAN_HOUR_DIFF vs FINAL_EXAM_SCORE", df = studentSummary_21A, xvar = "MEAN_HOUR_DIFF", 
-             yvar = "FINAL_EXAM_SCORE", xlim = c(-50,50), ylim = c(50,100), a = coef(m.2.Final)[1], b = coef(m.2.Final)[2])
+scatter_plot(title = "MEAN_HOUR_DIFF_Z vs FINAL_EXAM_SCORE", df = studentSummary_21A, xvar = "MEAN_HOUR_DIFF_Z", 
+             yvar = "FINAL_EXAM_SCORE", xlim = c(-2,2), ylim = c(0,100), a = coef(m.2.Final)[1], b = coef(m.2.Final)[2])
 scatter_plot(title = "HOUR_DIFF vs ASSIGNMENT_SCORE", df = assignments_21A, xvar = "HOUR_DIFF", 
              yvar = "SCORE_100", xlim = c(-200,200), ylim = c(0,100), a = fixef(m.3.Final)[1], b = fixef(m.3.Final)[2])
+scatter_plot(title = "HOUR_DIFF_Z vs ASSIGNMENT_SCORE", df = assignments_21A, xvar = "HOUR_DIFF_Z", 
+             yvar = "SCORE_100", xlim = c(-3,3), ylim = c(0,100), a = fixef(m.4.Final)[1], b = fixef(m.4.Final)[2])
 scatter_plot(title = "PCT_LATE vs FINAL_EXAM_SCORE", df = studentSummary_21A, xvar = "PCT_LATE", 
              yvar = "FINAL_EXAM_SCORE", xlim = c(0,.5), ylim = c(0,100), a = coef(m.5.Final)[1], b = coef(m.5.Final)[2])
+scatter_plot(title = "LOG_MEAN_PI vs FINAL_EXAM_SCORE", df = studentSummary_21A, xvar = "LOG_MEAN_PI", 
+             yvar = "FINAL_EXAM_SCORE", xlim = c(-5,1), ylim = c(0,100), a = coef(m.6.Final)[1], b = coef(m.6.Final)[2])
+scatter_plot(title = "MEAN_HOUR_DIFF_Z vs COURSE_GRADE", df = studentSummary_21A, xvar = "MEAN_HOUR_DIFF_Z", 
+             yvar = "OVERALL_COURSE_GRADE", xlim = c(-2,2), ylim = c(0,100), a = coef(m.7.Final)[1], b = coef(m.7.Final)[2])
+scatter_plot(title = "LOG_MEAN_PI vs COURSE_GRADE", df = studentSummary_21A, xvar = "LOG_MEAN_PI", 
+             yvar = "OVERALL_COURSE_GRADE", xlim = c(-5,1), ylim = c(0,100), a = coef(m.8.Final)[1], b = coef(m.8.Final)[2])
+scatter_plot(title = "MEAN_HOUR_DIFF_Z vs LOG_MEAN_PI", df = studentSummary_21A, xvar = "MEAN_HOUR_DIFF_Z", 
+             yvar = "LOG_MEAN_PI", xlim = c(-3,3), ylim = c(-5,1), a = coef(m.9.Final)[1], b = coef(m.9.Final)[2])
 ```
