@@ -140,14 +140,16 @@ studentSummary_21A <- assignments_21A %>%
             NUM_ON_TIME = NUM_ASSIGNMENTS - NUM_NOT_ON_TIME,
             PCT_MISSING = NUM_MISSING / NUM_ASSIGNMENTS,
             PCT_LATE = NUM_LATE / NUM_ASSIGNMENTS,
+            LOG_PCT_LATE = log(PCT_LATE + .01),
             PCT_NOT_ON_TIME = NUM_NOT_ON_TIME / NUM_ASSIGNMENTS,
+            LOG_PCT_NOT_ON_TIME = log(PCT_NOT_ON_TIME + .01),
             PCT_ON_TIME = NUM_ON_TIME / NUM_ASSIGNMENTS,
             
             MEAN_HOUR_DIFF = mean(HOUR_DIFF, na.rm = TRUE),
             MEAN_HOUR_DIFF_Z = mean(HOUR_DIFF_Z, na.rm = TRUE),
             
             MEAN_PI = mean(PI, na.rm = TRUE),
-            LOG_MEAN_PI = ifelse(is.na(MEAN_PI), NA, log(MEAN_PI + .001)))
+            LOG_MEAN_PI = ifelse(is.na(MEAN_PI), NA, log(MEAN_PI + .01)))
 ```
 
 # Join select summary stats back into assignment dataset

@@ -60,6 +60,7 @@ plot_histogram(df = studentSummary_21A, xvar = "OVERALL_COURSE_GRADE", binwidth 
 plot_histogram(df = studentSummary_21A, xvar = "FINAL_EXAM_SCORE", binwidth = 5, xlim = c(0,100))
 plot_histogram(df = studentSummary_21A, xvar = "PCT_ON_TIME", binwidth = .05, xlim = c(0,1))
 plot_histogram(df = studentSummary_21A, xvar = "PCT_LATE", binwidth = .05, xlim = c(0,.5))
+plot_histogram(df = studentSummary_21A, xvar = "LOG_PCT_LATE", binwidth = 1, xlim = c(-7,2))
 plot_histogram(df = studentSummary_21A, xvar = "MEAN_HOUR_DIFF", binwidth = 5, xlim = c(-100,100))
 plot_histogram(df = studentSummary_21A, xvar = "MEAN_HOUR_DIFF_Z", binwidth = .25, xlim = c(-2,2))
 plot_histogram(df = studentSummary_21A, xvar = "MEAN_PI", binwidth = .1, xlim = c(0,1))

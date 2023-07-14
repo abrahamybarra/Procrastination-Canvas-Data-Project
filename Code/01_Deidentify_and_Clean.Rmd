@@ -141,7 +141,7 @@ assignments_21 <- assignments_21 %>%
   arrange(ASSIGNMENT_NAME)
 
 # Print the names of all assignments flagged as submitted but with no submission time.
-# The list is empty, suggesting the dataset has been cleaned somewhat well.
+# TODO: There are 5 total such assignments for F21-002 (Jake's section) that will need to be removed.
 submit_noTime_21 <- assignments_21 %>%
   filter(SUBMITTED_FLAG == "True" & SUBMITTED_AT == "")
 list_missing_submit_21 = unique(submit_noTime_21$ASSIGNMENT_NAME)
@@ -154,7 +154,7 @@ assignments_21 <- assignments_21 %>%
 
 # Print the names of all remaining assignments.
 assignment_list_21 = unique(assignments_21$ASSIGNMENT_NAME)
-num_assignments = length(assignment_list_21) # total number of assignments (N = 108)
+num_assignments = length(assignment_list_21) # total number of assignments (N = 83)
 assignment_list_21
 
 # Clean up time values (remove decimals)
