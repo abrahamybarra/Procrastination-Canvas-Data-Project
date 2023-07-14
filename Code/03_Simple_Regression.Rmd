@@ -9,6 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## Performs regression analyses (including linear mixed models) to test whether various procrastination indices predict course outcomes 
+
 ## Load libraries
 
 ```{r}

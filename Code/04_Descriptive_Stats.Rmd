@@ -9,6 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# This file creates descriptive plots (e.g., histograms, box plots) for various procrastination indices and outcome variables of interest
+
 ## Load libraries
 
 ```{r}

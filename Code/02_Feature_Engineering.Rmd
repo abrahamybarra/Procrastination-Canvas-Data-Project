@@ -9,6 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## This file creates new columns in the dataset corresponding to the different proposed procrastination indices as well as additional "helper columns" used in calculating those indices. Indices are calculated both per-assignment and per-student as is applicable.
+
 ## Load libraries
 
 ```{r cars}
